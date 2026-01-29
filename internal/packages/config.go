@@ -1,0 +1,87 @@
+package packages
+
+import (
+	"bytes"
+	"encoding/json"
+	"encoding/xml"
+	"os"
+	"strings"
+)
+
+const configXMLPath = "/conf/config.xml"
+
+func readConfigXMLValue(path []string) (string, bool) {
+	data, err := os.ReadFile(configXMLPath)
+	if err != nil {
+		return "", false
+	}
+	dec := xml.NewDecoder(bytes.NewReader(data))
+	stack := make([]string, 0, len(path))
+	for {
+		tok, err := dec.Token()
+		if err != nil {
+			return "", false
+		}
+		switch t := tok.(type) {
+		case xml.StartElement:
+			stack = append(stack, t.Name.Local)
+		case xml.EndElement:
+			if len(stack) > 0 {
+				stack = stack[:len(stack)-1]
+			}
+		case xml.CharData:
+			if len(stack) == len(path) && matchesPath(stack, path) {
+				val := strings.TrimSpace(string(t))
+				if val != "" {
+					return val, true
+				}
+			}
+		}
+	}
+}
+
+func matchesPath(stack, path []string) bool {
+	if len(stack) != len(path) {
+		return false
+	}
+	for i := range path {
+		if stack[i] != path[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func readJSONBool(path, key string) (bool, bool) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return false, false
+	}
+	var obj map[string]interface{}
+	if err := json.Unmarshal(data, &obj); err != nil {
+		return false, false
+	}
+	v, ok := obj[key]
+	if !ok {
+		return false, false
+	}
+	b, ok := v.(bool)
+	return b, ok
+}
+
+func readJSONString(path, key string) (string, bool) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", false
+	}
+	var obj map[string]interface{}
+	if err := json.Unmarshal(data, &obj); err != nil {
+		return "", false
+	}
+	v, ok := obj[key]
+	if !ok {
+		return "", false
+	}
+	s, ok := v.(string)
+	return strings.TrimSpace(s), ok
+}

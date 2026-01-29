@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<packagegui>
+	<name>zidpackages</name>
+	<title>Services: ZID Packages</title>
+	<include_file>/usr/local/pkg/zid-packages.inc</include_file>
+	<aftersaveredirect>/zid-packages_packages.php</aftersaveredirect>
+
+	<menu>
+		<name>ZID Packages</name>
+		<tooltiptext>ZID Packages manager</tooltiptext>
+		<section>Services</section>
+		<url>/zid-packages_packages.php</url>
+	</menu>
+
+	<tabs>
+		<tab>
+			<text>Packages</text>
+			<url>/zid-packages_packages.php</url>
+			<active/>
+		</tab>
+		<tab>
+			<text>Services</text>
+			<url>/zid-packages_services.php</url>
+		</tab>
+		<tab>
+			<text>Licensing</text>
+			<url>/zid-packages_licensing.php</url>
+		</tab>
+		<tab>
+			<text>Logs</text>
+			<url>/zid-packages_logs.php</url>
+		</tab>
+	</tabs>
+</packagegui>

@@ -1,0 +1,8 @@
+/etc/inc/priv/zid-packages.priv.inc
+%%PREFIX%%/pkg/zid-packages.xml
+%%PREFIX%%/pkg/zid-packages.inc
+%%PREFIX%%/www/zid-packages_packages.php
+%%PREFIX%%/www/zid-packages_services.php
+%%PREFIX%%/www/zid-packages_licensing.php
+%%PREFIX%%/www/zid-packages_logs.php
+%%PREFIX%%/etc/rc.d/zid_packages
