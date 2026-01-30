@@ -1,14 +1,18 @@
 package ipc
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"net"
 	"os"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
 	"zid-packages/internal/licensing"
+	"zid-packages/internal/logx"
 	"zid-packages/internal/packages"
 	"zid-packages/internal/secure"
 )
@@ -44,10 +48,18 @@ type Server struct {
 	mu       sync.Mutex
 	nonces   map[string]time.Time
 	closed   bool
+	logger   *logx.Logger
+	debug    bool
+	logKeys  bool
 }
 
-func NewServer() *Server {
-	return &Server{nonces: map[string]time.Time{}}
+func NewServer(logger *logx.Logger) *Server {
+	return &Server{
+		nonces:  map[string]time.Time{},
+		logger:  logger,
+		debug:   envTrue("ZID_PACKAGES_IPC_DEBUG"),
+		logKeys: envTrue("ZID_PACKAGES_IPC_LOG_KEYS"),
+	}
 }
 
 func (s *Server) Start() error {
@@ -66,6 +78,7 @@ func (s *Server) Start() error {
 	os.Chown(SocketPath, 0, 0)
 
 	s.listener = ln
+	s.logInfo("ipc listen: " + SocketPath)
 	go s.acceptLoop()
 	return nil
 }
@@ -106,7 +119,11 @@ func (s *Server) handleConn(conn net.Conn) {
 	dec := json.NewDecoder(conn)
 	var req Request
 	if err := dec.Decode(&req); err != nil {
+		s.logInfo("ipc request invalid: " + err.Error())
 		return
+	}
+	if s.debug {
+		s.logInfo("ipc request op=" + req.Op + " pkg=" + req.Package + " ts=" + strconv.FormatInt(req.TS, 10) + " nonce=" + req.Nonce + " sig=" + req.Sig)
 	}
 	resp := s.handleRequest(req)
 	enc := json.NewEncoder(conn)
@@ -116,28 +133,34 @@ func (s *Server) handleConn(conn net.Conn) {
 func (s *Server) handleRequest(req Request) Response {
 	now := time.Now().UTC()
 	if req.Op != opCheck || req.Package == "" || req.Nonce == "" || req.TS == 0 {
-		return s.signResponse(Response{OK: false, Licensed: false, Mode: licensing.ModeNeverOK, Reason: "invalid_request", TS: now.Unix()})
+		return s.respond(req, Response{OK: false, Licensed: false, Mode: licensing.ModeNeverOK, Reason: "invalid_request", TS: now.Unix()})
 	}
 	if err := packages.ValidateKey(req.Package); err != nil {
-		return s.signResponse(Response{OK: false, Licensed: false, Mode: licensing.ModeNeverOK, Reason: "unknown_package", TS: now.Unix()})
+		return s.respond(req, Response{OK: false, Licensed: false, Mode: licensing.ModeNeverOK, Reason: "unknown_package", TS: now.Unix()})
 	}
 	if skew := now.Sub(time.Unix(req.TS, 0)); skew < -maxTimeSkew || skew > maxTimeSkew {
-		return s.signResponse(Response{OK: false, Licensed: false, Mode: licensing.ModeNeverOK, Reason: "invalid_ts", TS: now.Unix()})
+		return s.respond(req, Response{OK: false, Licensed: false, Mode: licensing.ModeNeverOK, Reason: "invalid_ts", TS: now.Unix()})
 	}
 	if !s.acceptNonce(req.Nonce, now) {
-		return s.signResponse(Response{OK: false, Licensed: false, Mode: licensing.ModeNeverOK, Reason: "replay", TS: now.Unix()})
+		return s.respond(req, Response{OK: false, Licensed: false, Mode: licensing.ModeNeverOK, Reason: "replay", TS: now.Unix()})
 	}
 
 	key, err := secure.DeriveKey()
 	if err != nil {
-		return s.signResponse(Response{OK: false, Licensed: false, Mode: licensing.ModeNeverOK, Reason: defaultReason, TS: now.Unix()})
+		return s.respond(req, Response{OK: false, Licensed: false, Mode: licensing.ModeNeverOK, Reason: defaultReason, TS: now.Unix()})
+	}
+	if s.logKeys {
+		s.logInfo("ipc key hex=" + hex.EncodeToString(key))
 	}
 
 	unsigned := req
 	unsigned.Sig = ""
 	payload, err := json.Marshal(unsigned)
 	if err != nil || !secure.VerifyHex(key, payload, req.Sig) {
-		return s.signResponse(Response{OK: false, Licensed: false, Mode: licensing.ModeNeverOK, Reason: "bad_sig", TS: now.Unix()})
+		if s.debug && err == nil {
+			s.logInfo("ipc bad_sig expected=" + secure.SignHex(key, payload))
+		}
+		return s.respond(req, Response{OK: false, Licensed: false, Mode: licensing.ModeNeverOK, Reason: "bad_sig", TS: now.Unix()})
 	}
 
 	st, err := licensing.LoadState()
@@ -163,7 +186,7 @@ func (s *Server) handleRequest(req Request) Response {
 		Reason:     reason,
 		TS:         now.Unix(),
 	}
-	return s.signResponse(resp)
+	return s.respond(req, resp)
 }
 
 func (s *Server) signResponse(resp Response) Response {
@@ -203,4 +226,30 @@ func unixOrZero(t time.Time) int64 {
 		return 0
 	}
 	return t.Unix()
+}
+
+func (s *Server) respond(req Request, resp Response) Response {
+	signed := s.signResponse(resp)
+	s.logAttempt(req, signed)
+	return signed
+}
+
+func (s *Server) logAttempt(req Request, resp Response) {
+	if s.logger == nil {
+		return
+	}
+	msg := "ipc response pkg=" + req.Package + " ok=" + strconv.FormatBool(resp.OK) + " licensed=" + strconv.FormatBool(resp.Licensed) + " mode=" + resp.Mode + " reason=" + resp.Reason
+	s.logInfo(msg)
+}
+
+func (s *Server) logInfo(msg string) {
+	if s.logger == nil {
+		return
+	}
+	s.logger.Info(msg)
+}
+
+func envTrue(name string) bool {
+	val := strings.TrimSpace(strings.ToLower(os.Getenv(name)))
+	return val == "1" || val == "true" || val == "yes"
 }

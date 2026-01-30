@@ -78,3 +78,134 @@ Campos:
 - O watchdog central do `zid-packages` tambem aplica enforcement (stop/start), mas o pacote deve se auto-proteger.
 - Se o cliente desinstalar o `zid-packages`, o socket desaparece e todos os pacotes devem parar.
 - Nao persistir chaves de licenca em arquivos. Toda validacao e por consulta ao `zid-packages`.
+
+## Debug temporario (IPC)
+Para diagnosticar comunicacao entre pacote e `zid-packages`, existem flags de ambiente:
+- `ZID_PACKAGES_IPC_DEBUG=1` -> loga detalhes da request/response no `/var/log/zid-packages.log`.
+- `ZID_PACKAGES_IPC_LOG_KEYS=1` -> loga a key derivada (hex) no `/var/log/zid-packages.log`.
+
+Use apenas para diagnostico e remova apos validar.
+
+## Erros comuns (bad_sig)
+Se aparecer `bad_sig` no `zid-packages.log`, geralmente e um destes pontos:
+1) **Assinando o payload errado (request)**  
+   O `sig` deve ser calculado sobre o JSON do **struct completo** com `sig` vazio (`""`).  
+   Se assinar apenas `requestPayload` (sem campo `sig`), a assinatura nao vai bater.
+2) **Validando resposta sem `sig` vazio**  
+   O servidor assina a **resposta completa** com `sig` vazio.  
+   Se o cliente validar usando somente os campos sem `sig`, vai dar `bad_sig`.
+3) **Uso de `map` ao inves de `struct`**  
+   Assinar JSON gerado de `map` pode mudar a ordem dos campos e quebrar o HMAC.  
+   Use sempre `struct` com tags iguais.
+
+## Referencia: DeriveKey e assinatura (zid-proxy)
+Para garantir compatibilidade com o `zid-packages`, use exatamente o mesmo algoritmo de derivacao e assinatura:
+
+### DeriveKey
+- `host`: hostname curto (sem dominio)
+- `uid`: conteudo de `/var/db/uniqueid`
+- `salt`: `uid + ":" + host`
+- `info`: `"zid-packages-hkdf"`
+- `masterSecret`: `"zid-packages-master-secret-2026-01"`
+- HKDF SHA256 com key de 32 bytes
+
+```go
+package licensing
+
+import (
+	"crypto/sha256"
+	"errors"
+	"io"
+	"os"
+	"strings"
+
+	"golang.org/x/crypto/hkdf"
+)
+
+const masterSecret = "zid-packages-master-secret-2026-01"
+
+func shortHostname() (string, error) {
+	host, err := os.Hostname()
+	if err != nil {
+		return "", err
+	}
+	host = strings.TrimSpace(host)
+	if host == "" {
+		return "", errors.New("hostname vazio")
+	}
+	if idx := strings.IndexByte(host, '.'); idx > 0 {
+		host = host[:idx]
+	}
+	return host, nil
+}
+
+func uniqueID() (string, error) {
+	raw, err := os.ReadFile("/var/db/uniqueid")
+	if err != nil {
+		return "", err
+	}
+	uid := strings.TrimSpace(string(raw))
+	if uid == "" {
+		return "", errors.New("uniqueid vazio")
+	}
+	return uid, nil
+}
+
+func deriveKey() ([]byte, error) {
+	host, err := shortHostname()
+	if err != nil {
+		return nil, err
+	}
+	uid, err := uniqueID()
+	if err != nil {
+		return nil, err
+	}
+	salt := []byte(uid + ":" + host)
+	info := []byte("zid-packages-hkdf")
+
+	reader := hkdf.New(sha256.New, []byte(masterSecret), salt, info)
+	key := make([]byte, 32)
+	if _, err := io.ReadFull(reader, key); err != nil {
+		return nil, err
+	}
+	return key, nil
+}
+```
+
+### Assinatura do request
+- Assinar o JSON **sem o campo `sig`**
+- Use `json.Marshal` de um **struct** (nao map), para manter ordem/forma estavel
+
+```go
+type Request struct {
+	Op      string `json:"op"`
+	Package string `json:"package"`
+	TS      int64  `json:"ts"`
+	Nonce   string `json:"nonce"`
+	Sig     string `json:"sig"`
+}
+
+func signHex(key, payload []byte) string {
+	mac := hmac.New(sha256.New, key)
+	mac.Write(payload)
+	return hex.EncodeToString(mac.Sum(nil))
+}
+
+func buildRequest(pkg string, ts int64, nonce string) (Request, error) {
+	key, err := deriveKey()
+	if err != nil {
+		return Request{}, err
+	}
+
+	req := Request{
+		Op:      "CHECK",
+		Package: pkg,
+		TS:      ts,
+		Nonce:   nonce,
+		Sig:     "",
+	}
+	payload, _ := json.Marshal(req)
+	req.Sig = signHex(key, payload)
+	return req, nil
+}
+```

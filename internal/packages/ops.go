@@ -9,8 +9,10 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
+	"zid-packages/internal/logx"
 	"zid-packages/internal/s3"
 )
 
@@ -20,6 +22,20 @@ const (
 	geolocationBin = "/usr/local/sbin/zid-geolocation"
 	logsBin        = "/usr/local/sbin/zid-logs"
 	packagesBin    = "/usr/local/sbin/zid-packages"
+)
+
+const enabledCacheTTL = 2 * time.Minute
+
+type enabledCacheEntry struct {
+	value     bool
+	timestamp time.Time
+}
+
+var (
+	enabledCacheMu sync.Mutex
+	enabledCache   = map[string]enabledCacheEntry{}
+	enableDebug    = envTrue("ZID_PACKAGES_ENABLE_DEBUG")
+	enableLogger   = logx.New("/var/log/zid-packages.log")
 )
 
 func Installed(key string) bool {
@@ -48,18 +64,67 @@ func Enabled(key string) (bool, error) {
 		}
 		return false, nil
 	case "zid-proxy":
-		val, ok := readConfigXMLValue([]string{"installedpackages", "zidproxy", "config", "enable"})
+		if b, ok := readEnableViaPHP("zid-proxy"); ok {
+			logEnable(key, "php:installedpackages/zidproxy/config/enable", boolString(b), true)
+			return cacheEnabled(key, b), nil
+		}
+		val, ok := readConfigXMLValueRetry([]string{"installedpackages", "zidproxy", "config", "enable"}, 3)
+		logEnable(key, "config:installedpackages/zidproxy/config/enable", val, ok)
 		if ok {
-			return isOn(val), nil
+			return cacheEnabled(key, isOn(val)), nil
+		}
+		val, ok = readConfigXMLValueRetry([]string{"zidproxy", "config", "enable"}, 3)
+		logEnable(key, "config:zidproxy/config/enable", val, ok)
+		if ok {
+			return cacheEnabled(key, isOn(val)), nil
+		}
+		val, ok = readConfigXMLValueLooseRetry([]string{"installedpackages", "zidproxy", "config", "enable"}, 3)
+		logEnable(key, "config-loose:installedpackages/zidproxy/config/enable", val, ok)
+		if ok {
+			return cacheEnabled(key, isOn(val)), nil
+		}
+		val, ok = readConfigXMLValueLooseRetry([]string{"zidproxy", "config", "enable"}, 3)
+		logEnable(key, "config-loose:zidproxy/config/enable", val, ok)
+		if ok {
+			return cacheEnabled(key, isOn(val)), nil
+		}
+		if cached, ok := cachedEnabled(key); ok {
+			logEnable(key, "cache", boolString(cached), true)
+			return cached, nil
 		}
 		return false, nil
 	case "zid-geolocation":
-		val, ok := readConfigXMLValue([]string{"installedpackages", "zidgeolocation", "config", "enable"})
+		if b, ok := readEnableViaPHP("zid-geolocation"); ok {
+			logEnable(key, "php:installedpackages/zidgeolocation/config/enable", boolString(b), true)
+			return cacheEnabled(key, b), nil
+		}
+		val, ok := readConfigXMLValueRetry([]string{"installedpackages", "zidgeolocation", "config", "enable"}, 3)
+		logEnable(key, "config:installedpackages/zidgeolocation/config/enable", val, ok)
 		if ok {
-			return isOn(val), nil
+			return cacheEnabled(key, isOn(val)), nil
+		}
+		val, ok = readConfigXMLValueRetry([]string{"zidgeolocation", "config", "enable"}, 3)
+		logEnable(key, "config:zidgeolocation/config/enable", val, ok)
+		if ok {
+			return cacheEnabled(key, isOn(val)), nil
+		}
+		val, ok = readConfigXMLValueLooseRetry([]string{"installedpackages", "zidgeolocation", "config", "enable"}, 3)
+		logEnable(key, "config-loose:installedpackages/zidgeolocation/config/enable", val, ok)
+		if ok {
+			return cacheEnabled(key, isOn(val)), nil
+		}
+		val, ok = readConfigXMLValueLooseRetry([]string{"zidgeolocation", "config", "enable"}, 3)
+		logEnable(key, "config-loose:zidgeolocation/config/enable", val, ok)
+		if ok {
+			return cacheEnabled(key, isOn(val)), nil
 		}
 		if b, ok := readJSONBool("/usr/local/etc/zid-geolocation/config.json", "enable"); ok {
-			return b, nil
+			logEnable(key, "config-json:/usr/local/etc/zid-geolocation/config.json", boolString(b), true)
+			return cacheEnabled(key, b), nil
+		}
+		if cached, ok := cachedEnabled(key); ok {
+			logEnable(key, "cache", boolString(cached), true)
+			return cached, nil
 		}
 		return false, nil
 	case "zid-logs":
@@ -70,6 +135,26 @@ func Enabled(key string) (bool, error) {
 	default:
 		return false, errors.New("unknown package")
 	}
+}
+
+func EnableSnapshot(key string) map[string]string {
+	out := map[string]string{}
+	switch key {
+	case "zid-proxy":
+		out["config:installedpackages/zidproxy/config/enable"] = readValueOrEmpty([]string{"installedpackages", "zidproxy", "config", "enable"})
+		out["config:zidproxy/config/enable"] = readValueOrEmpty([]string{"zidproxy", "config", "enable"})
+		out["config-loose:installedpackages/zidproxy/config/enable"] = readValueLooseOrEmpty([]string{"installedpackages", "zidproxy", "config", "enable"})
+		out["config-loose:zidproxy/config/enable"] = readValueLooseOrEmpty([]string{"zidproxy", "config", "enable"})
+	case "zid-geolocation":
+		out["config:installedpackages/zidgeolocation/config/enable"] = readValueOrEmpty([]string{"installedpackages", "zidgeolocation", "config", "enable"})
+		out["config:zidgeolocation/config/enable"] = readValueOrEmpty([]string{"zidgeolocation", "config", "enable"})
+		out["config-loose:installedpackages/zidgeolocation/config/enable"] = readValueLooseOrEmpty([]string{"installedpackages", "zidgeolocation", "config", "enable"})
+		out["config-loose:zidgeolocation/config/enable"] = readValueLooseOrEmpty([]string{"zidgeolocation", "config", "enable"})
+		if b, ok := readJSONBool("/usr/local/etc/zid-geolocation/config.json", "enable"); ok {
+			out["config-json:/usr/local/etc/zid-geolocation/config.json"] = boolString(b)
+		}
+	}
+	return out
 }
 
 func ServiceRunning(key string) (bool, error) {
@@ -290,6 +375,100 @@ func readConfigXMLPackageVersion(pkgName string) string {
 func isOn(val string) bool {
 	val = strings.ToLower(strings.TrimSpace(val))
 	return val == "on" || val == "true" || val == "1"
+}
+
+func logEnable(key, source, val string, ok bool) {
+	if !enableDebug {
+		return
+	}
+	msg := "enable read: key=" + key + " source=" + source + " ok=" + boolString(ok) + " value=" + strings.TrimSpace(val)
+	enableLogger.Info(msg)
+}
+
+func boolString(v bool) string {
+	if v {
+		return "true"
+	}
+	return "false"
+}
+
+func envTrue(name string) bool {
+	val := strings.TrimSpace(strings.ToLower(os.Getenv(name)))
+	return val == "1" || val == "true" || val == "yes"
+}
+
+func cacheEnabled(key string, value bool) bool {
+	enabledCacheMu.Lock()
+	defer enabledCacheMu.Unlock()
+	enabledCache[key] = enabledCacheEntry{value: value, timestamp: time.Now().UTC()}
+	return value
+}
+
+func cachedEnabled(key string) (bool, bool) {
+	enabledCacheMu.Lock()
+	defer enabledCacheMu.Unlock()
+	entry, ok := enabledCache[key]
+	if !ok {
+		return false, false
+	}
+	if time.Since(entry.timestamp) > enabledCacheTTL {
+		delete(enabledCache, key)
+		return false, false
+	}
+	return entry.value, true
+}
+
+func readEnableViaPHP(key string) (bool, bool) {
+	php := phpBin()
+	if php == "" {
+		return false, false
+	}
+	var expr string
+	switch key {
+	case "zid-proxy":
+		expr = `$cfg=$config["installedpackages"]["zidproxy"]["config"][0] ?? []; $val=$cfg["enable"] ?? ""; echo ($val === "on" || $val === "true" || $val === "1" || $val === true || $val === 1) ? "1" : "0";`
+	case "zid-geolocation":
+		expr = `$cfg=$config["installedpackages"]["zidgeolocation"]["config"][0] ?? []; $val=$cfg["enable"] ?? ""; echo ($val === "on" || $val === "true" || $val === "1" || $val === true || $val === 1) ? "1" : "0";`
+	default:
+		return false, false
+	}
+	cmd := exec.Command(php, "-r", `require_once("/etc/inc/config.inc"); `+expr)
+	out, err := cmd.Output()
+	if err != nil {
+		return false, false
+	}
+	val := strings.TrimSpace(string(out))
+	if val == "1" {
+		return true, true
+	}
+	if val == "0" {
+		return false, true
+	}
+	return false, false
+}
+
+func phpBin() string {
+	if fileExists("/usr/local/bin/php") {
+		return "/usr/local/bin/php"
+	}
+	if fileExists("/usr/local/bin/php-cgi") {
+		return "/usr/local/bin/php-cgi"
+	}
+	return ""
+}
+
+func readValueOrEmpty(path []string) string {
+	if val, ok := readConfigXMLValueRetry(path, 3); ok {
+		return strings.TrimSpace(val)
+	}
+	return ""
+}
+
+func readValueLooseOrEmpty(path []string) string {
+	if val, ok := readConfigXMLValueLooseRetry(path, 3); ok {
+		return strings.TrimSpace(val)
+	}
+	return ""
 }
 
 func readRCConfBool(path, key string) (bool, bool) {

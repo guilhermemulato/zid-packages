@@ -4,6 +4,8 @@ import (
 	"errors"
 	"os"
 	"os/signal"
+	"sort"
+	"strings"
 	"syscall"
 	"time"
 
@@ -59,11 +61,14 @@ func RunOnce(logger *logx.Logger) error {
 
 		running, _ := packages.ServiceRunning(svc.Key)
 		if shouldRun && !running {
-			logger.Info("watchdog start: " + svc.DisplayName)
+			logger.Info("watchdog start: " + svc.DisplayName + watchdogReason(enabled, licensed, mode))
 			_ = packages.StartService(svc.Key)
 		}
 		if !shouldRun && running {
-			logger.Info("watchdog stop: " + svc.DisplayName)
+			logger.Info("watchdog stop: " + svc.DisplayName + watchdogReason(enabled, licensed, mode))
+			if !enabled {
+				logger.Info("watchdog enable snapshot: " + svc.DisplayName + " " + formatEnableSnapshot(svc.PackageKey))
+			}
 			_ = packages.StopService(svc.Key)
 		}
 	}
@@ -75,7 +80,7 @@ func RunDaemon(logger *logx.Logger, interval time.Duration) error {
 		interval = watchdogInterval
 	}
 
-	ipcServer := ipc.NewServer()
+	ipcServer := ipc.NewServer(logger)
 	if err := ipcServer.Start(); err != nil {
 		return err
 	}
@@ -103,4 +108,31 @@ func RunDaemon(logger *logx.Logger, interval time.Duration) error {
 			return ErrDaemonStopped
 		}
 	}
+}
+
+func watchdogReason(enabled bool, licensed bool, mode string) string {
+	return " (enabled=" + boolLabel(enabled) + " licensed=" + boolLabel(licensed) + " mode=" + mode + ")"
+}
+
+func boolLabel(v bool) string {
+	if v {
+		return "true"
+	}
+	return "false"
+}
+
+func formatEnableSnapshot(packageKey string) string {
+	snapshot := packages.EnableSnapshot(packageKey)
+	if len(snapshot) == 0 {
+		return "(no snapshot)"
+	}
+	parts := make([]string, 0, len(snapshot))
+	for key, val := range snapshot {
+		if val == "" {
+			val = "-"
+		}
+		parts = append(parts, key+"="+val)
+	}
+	sort.Strings(parts)
+	return strings.Join(parts, " ")
 }

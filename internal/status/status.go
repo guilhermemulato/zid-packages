@@ -94,6 +94,7 @@ func BuildStatus() Status {
 func buildServicesStatus(licensed map[string]bool, licenseOK bool) []ServiceStatus {
 	services := []ServiceStatus{}
 
+	services = append(services, serviceStatus("zid-packages", "zid-packages", licensed, licenseOK))
 	services = append(services, serviceStatus("zid-proxy", "zid-proxy", licensed, licenseOK))
 	services = append(services, serviceStatus("zid-appid", "zid-proxy", licensed, licenseOK))
 	services = append(services, serviceStatus("zid-geolocation", "zid-geolocation", licensed, licenseOK))

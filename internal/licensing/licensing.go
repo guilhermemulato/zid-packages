@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 
 	"zid-packages/internal/logx"
@@ -89,8 +90,8 @@ func Sync(logger *logx.Logger) error {
 		return nil
 	}
 
-	var out map[string]bool
-	if err := json.Unmarshal(raw, &out); err != nil {
+	out, err := parseLicenseMap(raw)
+	if err != nil {
 		_ = state.Save(state.DefaultPath, st)
 		return err
 	}
@@ -109,6 +110,43 @@ func Sync(logger *logx.Logger) error {
 
 	logger.Info("licenciamento atualizado")
 	return nil
+}
+
+func parseLicenseMap(raw []byte) (map[string]bool, error) {
+	var payload map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		return nil, err
+	}
+
+	out := make(map[string]bool, len(payload))
+	for key, value := range payload {
+		if len(value) == 0 {
+			return nil, fmt.Errorf("licensing invalid value for %s", key)
+		}
+		var asBool bool
+		if err := json.Unmarshal(value, &asBool); err == nil {
+			out[key] = asBool
+			continue
+		}
+		var asString string
+		if err := json.Unmarshal(value, &asString); err == nil {
+			parsed, err := strconv.ParseBool(asString)
+			if err != nil {
+				return nil, fmt.Errorf("licensing invalid bool string for %s", key)
+			}
+			out[key] = parsed
+			continue
+		}
+		var asNumber float64
+		if err := json.Unmarshal(value, &asNumber); err == nil {
+			if asNumber == 0 || asNumber == 1 {
+				out[key] = asNumber == 1
+				continue
+			}
+		}
+		return nil, fmt.Errorf("licensing unsupported value for %s", key)
+	}
+	return out, nil
 }
 
 func buildRequest() (licenseRequest, error) {

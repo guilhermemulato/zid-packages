@@ -1,5 +1,59 @@
 # Changelog
 
+## [0.4.31] - 2026-01-30
+- Leitura do enable via PHP config.inc (igual zid-geolocation) para evitar flapping.
+
+## [0.4.30] - 2026-01-30
+- Watchdog agora loga snapshot bruto do enable quando para serviço por enabled=false.
+
+## [0.4.29] - 2026-01-30
+- Log debug opcional para leitura do enable (ZID_PACKAGES_ENABLE_DEBUG=1).
+
+## [0.4.28] - 2026-01-30
+- Cache temporario do enable para evitar flapping do watchdog.
+
+## [0.4.27] - 2026-01-30
+- Leitura do enable com retry para evitar flapping durante gravações do config.xml.
+
+## [0.4.26] - 2026-01-30
+- Aba Services agora detecta status do daemon do zid-packages corretamente.
+
+## [0.4.25] - 2026-01-30
+- Aba Logs: controles de refresh mais claros com badge de status.
+
+## [0.4.24] - 2026-01-30
+- Leitura de enable mais tolerante no config.xml (paths com niveis extras).
+
+## [0.4.23] - 2026-01-30
+- Aba Services mostra botao Start ou Restart/Stop conforme status do daemon.
+
+## [0.4.22] - 2026-01-30
+- Watchdog agora aceita enable do zid-proxy/zid-geolocation tanto em installedpackages quanto no topo do config.xml.
+
+## [0.4.21] - 2026-01-30
+- Aba Logs agora tem botao Refresh e auto refresh opcional.
+
+## [0.4.20] - 2026-01-30
+- Aba Logs agora mostra as 50 linhas mais recentes no topo.
+
+## [0.4.19] - 2026-01-30
+- Aba Services agora permite start/stop/restart do zid-packages via GUI.
+
+## [0.4.18] - 2026-01-30
+- Watchdog agora le enable do zid-geolocation no caminho correto do config.xml.
+
+## [0.4.17] - 2026-01-30
+- Watchdog agora le enable do zid-proxy no caminho correto do config.xml.
+
+## [0.4.16] - 2026-01-30
+- Watchdog agora loga motivo do start/stop (enabled/licensed/mode) para diagnostico.
+
+## [0.4.15] - 2026-01-30
+- Adiciona logs de tentativas de licenca no IPC e flags de debug para diagnostico.
+
+## [0.4.14] - 2026-01-30
+- Licenciamento tolera resposta do webhook com valores string ("true"/"false").
+
 ## [0.4.13] - 2026-01-29
 - Mostra badge \"Up to date\" na aba Packages quando a versao local = remota.
 
