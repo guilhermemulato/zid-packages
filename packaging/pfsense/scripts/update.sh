@@ -16,7 +16,7 @@ Usage:
   sh update.sh [-u <url>] [-f] [-k]
 
 Options:
-  -u <url>  Bundle URL (default: ${URL_DEFAULT})
+  -u <url>  Bundle URL (default: oculto)
   -f        Force update (skip version check)
   -k        Keep temporary directory (debug)
 EOF2

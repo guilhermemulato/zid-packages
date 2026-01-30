@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.33] - 2026-01-30
+- Update/install: nao exibe URL do bundle nos outputs do bootstrap.
+
+## [0.4.32] - 2026-01-30
+- Rotacao automatica do log em 1 MB com retencao de 7 arquivos e SIGHUP para reabrir.
+
 ## [0.4.31] - 2026-01-30
 - Leitura do enable via PHP config.inc (igual zid-geolocation) para evitar flapping.
 

@@ -44,6 +44,7 @@ Pacotes controlados:
   - `zid-packages.priv.inc`
 - `packaging/pfsense/scripts/`
   - `install.sh`, `update.sh`, `uninstall.sh`
+  - `update-bootstrap.sh` — helper de update; oculta URL do bundle no output
   - `register-package.php`, `unregister-package.php`
   - `bundle-latest.sh`
 
@@ -76,6 +77,7 @@ Binário instalado no pfSense:
 
 Log principal:
 - `/var/log/zid-packages.log`
+  - Rotação automática: 1 MB, mantém 7 arquivos (`.1` a `.7`) e envia SIGHUP para reabrir o log.
 
 ---
 

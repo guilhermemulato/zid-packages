@@ -16,7 +16,7 @@ Usage:
   sh /usr/local/sbin/zid-packages-update [-u <url>] [-f] [-k]
 
 Options:
-  -u <url>  Bundle URL (default: ${URL_DEFAULT})
+  -u <url>  Bundle URL (default: oculto)
   -f        Force update (skip version check)
   -k        Keep temporary directory (debug)
 EOF2
@@ -61,11 +61,11 @@ TARBALL="${TMP_DIR}/bundle.tar.gz"
 EXTRACT_DIR="${TMP_DIR}/extract"
 mkdir -p "${EXTRACT_DIR}"
 
-echo "Downloading: ${URL}"
+echo "Downloading bundle..."
 if [ "${DOWNLOADER}" = "fetch" ]; then
-	fetch -o "${TARBALL}" "${URL}"
+	fetch -q -o "${TARBALL}" "${URL}"
 else
-	curl -fL -o "${TARBALL}" "${URL}"
+	curl -fL -sS -o "${TARBALL}" "${URL}"
 fi
 
 echo "Extracting bundle..."
