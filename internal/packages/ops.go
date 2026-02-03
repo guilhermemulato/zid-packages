@@ -282,7 +282,7 @@ func readBinaryVersion(bin string) string {
 }
 
 func parseVersion(output string) string {
-	re := regexp.MustCompile(`\b(\d+\.\d+(?:\.\d+){0,3})\b`)
+	re := regexp.MustCompile(`\b(\d+(?:\.\d+)+)\b`)
 	match := re.FindStringSubmatch(output)
 	if len(match) > 1 {
 		return match[1]

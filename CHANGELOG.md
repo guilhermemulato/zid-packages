@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.4.42] - 2026-02-03
+- Corrige detecção de versão local para pacotes com mais de 5 segmentos (ex.: 1.0.1.9.3.7).
+
 ## [0.4.41] - 2026-02-02
 - adiciona zid_packages.sh para execucao via localpkg no boot.
 
