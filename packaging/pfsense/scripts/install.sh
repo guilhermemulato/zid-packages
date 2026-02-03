@@ -68,6 +68,24 @@ set_rc_conf() {
 	fi
 }
 
+ensure_local_startup() {
+	file="/etc/rc.conf.local"
+	key="local_startup"
+	dir="/usr/local/etc/rc.d"
+
+	touch "${file}"
+	if grep -q "^${key}=" "${file}"; then
+		val=$(grep "^${key}=" "${file}" | tail -n 1 | sed 's/^local_startup=//; s/"//g')
+		if echo "${val}" | grep -q "${dir}"; then
+			return 0
+		fi
+		val=$(echo "${val} ${dir}" | tr -s ' ')
+		sed -i '' "s|^${key}=.*|${key}=\"${val}\"|" "${file}"
+	else
+		echo "${key}=\"${dir}\"" >> "${file}"
+	fi
+}
+
 # Install package configuration
 echo "Installing package configuration..."
 cp ${FILES_DIR}${PREFIX}/pkg/zid-packages.xml ${PREFIX}/pkg/
@@ -88,6 +106,10 @@ cp -f ${FILES_DIR}/etc/inc/priv/zid-packages.priv.inc /etc/inc/priv/
 echo "Installing rc.d..."
 cp -f ${FILES_DIR}${PREFIX}/etc/rc.d/zid_packages ${PREFIX}/etc/rc.d/
 chmod 755 ${PREFIX}/etc/rc.d/zid_packages
+if [ -f ${FILES_DIR}${PREFIX}/etc/rc.d/zid_packages.sh ]; then
+    cp -f ${FILES_DIR}${PREFIX}/etc/rc.d/zid_packages.sh ${PREFIX}/etc/rc.d/
+    chmod 755 ${PREFIX}/etc/rc.d/zid_packages.sh
+fi
 
 # Install package binary
 BINARY_PATH="${ROOT_DIR}/build/zid-packages"
@@ -201,6 +223,9 @@ fi
 
 # Ensure rc.conf.local has zid_packages_enable=YES for boot persistence
 set_rc_conf "zid_packages_enable" "YES" "/etc/rc.conf.local"
+# Ensure local package rc.d startup is enabled and includes /usr/local/etc/rc.d
+set_rc_conf "localpkg_enable" "YES" "/etc/rc.conf.local"
+ensure_local_startup
 
 if [ -x /usr/local/etc/rc.d/zid_packages ]; then
     echo "Starting zid-packages daemon..."
@@ -216,6 +241,9 @@ echo "  • Binary: ${PREFIX}/sbin/zid-packages"
 echo "  • Package files: ${PREFIX}/pkg/zid-packages.*"
 echo "  • Web interface: ${PREFIX}/www/zid-packages_*.php"
 echo "  • RC script: ${PREFIX}/etc/rc.d/zid_packages"
+if [ -f ${PREFIX}/etc/rc.d/zid_packages.sh ]; then
+    echo "  • RC script (localpkg): ${PREFIX}/etc/rc.d/zid_packages.sh"
+fi
 echo "  • Updater: ${PREFIX}/sbin/zid-packages-update"
 echo ""
 echo "Next steps:"

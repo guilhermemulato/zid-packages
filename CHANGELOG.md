@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.4.41] - 2026-02-02
+- adiciona zid_packages.sh para execucao via localpkg no boot.
+
+## [0.4.40] - 2026-02-02
+- install.sh garante localpkg_enable e local_startup para executar rc.d no boot.
+
+## [0.4.39] - 2026-02-02
+- install.sh garante local_enable e local_startup para executar rc.d no boot.
+
+## [0.4.38] - 2026-02-02
+- rc.d do zid-packages alinhado ao padrão do zid-proxy (daemon/command_args).
+
+## [0.4.37] - 2026-02-02
+- rc.d passa a depender de DAEMON para entrar no rcorder do boot.
+
+## [0.4.36] - 2026-02-02
+- rc.d passa a depender de NETWORKING para entrar no rcorder do boot.
+
+## [0.4.35] - 2026-02-02
+- rc.d agora carrega rc.conf/rc.conf.local e usa checkyesno para enable.
+
+## [0.4.34] - 2026-02-02
+- Corrige leitura de enable do rc.conf.local (YES/NO) para zid-packages.
+
 ## [0.4.33] - 2026-01-30
 - Update/install: nao exibe URL do bundle nos outputs do bootstrap.
 

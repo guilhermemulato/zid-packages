@@ -374,7 +374,7 @@ func readConfigXMLPackageVersion(pkgName string) string {
 
 func isOn(val string) bool {
 	val = strings.ToLower(strings.TrimSpace(val))
-	return val == "on" || val == "true" || val == "1"
+	return val == "on" || val == "true" || val == "1" || val == "yes"
 }
 
 func logEnable(key, source, val string, ok bool) {

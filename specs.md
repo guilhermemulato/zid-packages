@@ -159,6 +159,7 @@ Para evitar flapping, usa o mesmo método do zid-geolocation:
 Fallbacks adicionais:
 - parse do `/conf/config.xml` (estrito + loose)
 - cache temporário (TTL curto) quando leitura falha
+- para `zid-packages`, lê `/etc/rc.conf.local` ou `/etc/rc.conf` (aceita YES/NO)
 
 Flags de debug de enable:
 - `ZID_PACKAGES_ENABLE_DEBUG=1` — loga fonte/valor lido
@@ -208,6 +209,9 @@ make bundle-latest
 ### install.sh
 - Copia GUI/priv/incs
 - Registra pacote no pfSense
+- Garante `localpkg_enable=YES` e `local_startup` com `/usr/local/etc/rc.d`
+- Instala `zid_packages.sh` para execucao via localpkg (localpkg executa apenas scripts *.sh)
+- Mantem `zid_packages` como wrapper para uso manual/compatibilidade
 ### update.sh
 — Reinstala bundle (sem desinstalar)
 ### uninstall.sh
@@ -232,6 +236,10 @@ make bundle-latest
 
 **Config pfSense**
 - `/conf/config.xml`
+
+**RC.d**
+- `/usr/local/etc/rc.d/zid_packages`
+- `/usr/local/etc/rc.d/zid_packages.sh`
 
 ---
 

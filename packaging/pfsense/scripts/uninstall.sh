@@ -55,6 +55,7 @@ rm -f ${PREFIX}/www/services/zid-packages_licensing.php
 rm -f ${PREFIX}/www/services/zid-packages_logs.php
 rm -f /etc/inc/priv/zid-packages.priv.inc
 rm -f ${PREFIX}/etc/rc.d/zid_packages
+rm -f ${PREFIX}/etc/rc.d/zid_packages.sh
 rm -f ${PREFIX}/sbin/zid-packages
 rm -f ${PREFIX}/sbin/zid-packages-update
 rm -f ${PREFIX}/share/pfSense-pkg-zid-packages/zid-packages-update

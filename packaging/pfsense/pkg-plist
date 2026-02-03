@@ -6,3 +6,4 @@
 %%PREFIX%%/www/zid-packages_licensing.php
 %%PREFIX%%/www/zid-packages_logs.php
 %%PREFIX%%/etc/rc.d/zid_packages
+%%PREFIX%%/etc/rc.d/zid_packages.sh
