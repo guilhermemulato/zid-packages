@@ -212,6 +212,7 @@ if [ -n "${PHP_CMD}" ]; then
 require_once("/usr/local/pkg/zid-packages.inc");
 zid_packages_set_rc_enable(true);
 zid_packages_remove_legacy_watchdogs();
+zid_packages_remove_legacy_auto_update_cron();
 zid_packages_install_watchdog_cron();
 ?>
 PHP

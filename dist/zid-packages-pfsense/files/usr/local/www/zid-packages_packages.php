@@ -63,6 +63,7 @@ $packages = $status['packages'] ?? array();
 						<th><?php echo gettext('Version'); ?></th>
 						<th><?php echo gettext('Remote'); ?></th>
 						<th><?php echo gettext('Update'); ?></th>
+						<th><?php echo gettext('Auto Update'); ?></th>
 						<th><?php echo gettext('Service'); ?></th>
 						<th><?php echo gettext('Enabled'); ?></th>
 						<th><?php echo gettext('Licensed'); ?></th>
@@ -83,6 +84,10 @@ $packages = $status['packages'] ?? array();
 						$enabled = !empty($pkg['enabled']);
 						$licensed = !empty($pkg['licensed']);
 						$up_to_date = $has_remote && $local_version !== '' && $remote_version === $local_version;
+						$auto_age = intval($pkg['auto_update_age_days'] ?? 0);
+						$auto_threshold = intval($pkg['auto_update_threshold_days'] ?? 0);
+						$auto_due = !empty($pkg['auto_update_due']);
+						$auto_due_at = intval($pkg['auto_update_due_at'] ?? 0);
 					?>
 					<tr>
 						<td><?php echo htmlspecialchars($key); ?></td>
@@ -90,6 +95,28 @@ $packages = $status['packages'] ?? array();
 						<td><?php echo htmlspecialchars($pkg['version_installed'] ?? '-'); ?></td>
 						<td><?php echo $has_remote ? htmlspecialchars($remote_version) : '-'; ?></td>
 						<td><?php echo $update_available ? gettext('Available') : ($has_remote ? gettext('OK') : gettext('N/A')); ?></td>
+						<td>
+							<?php if ($update_available): ?>
+								<?php
+									$auto_eta = $auto_due_at > 0 ? date('Y-m-d H:i', $auto_due_at) : '';
+									if ($auto_due) {
+										$auto_label = gettext('Due');
+										if ($auto_eta !== '') {
+											$auto_label .= ' (ETA ' . $auto_eta . ')';
+										}
+										echo htmlspecialchars($auto_label);
+									} else {
+										$auto_label = sprintf('%d/%d day', $auto_age, $auto_threshold);
+										if ($auto_eta !== '') {
+											$auto_label .= ' (ETA ' . $auto_eta . ')';
+										}
+										echo htmlspecialchars($auto_label);
+									}
+								?>
+							<?php else: ?>
+								-
+							<?php endif; ?>
+						</td>
 						<td><?php echo $running ? gettext('Running') : gettext('Stopped'); ?></td>
 						<td><?php echo $enabled ? gettext('Yes') : gettext('No'); ?></td>
 						<td><?php echo $is_self ? gettext('N/A') : ($licensed ? gettext('Yes') : gettext('No')); ?></td>

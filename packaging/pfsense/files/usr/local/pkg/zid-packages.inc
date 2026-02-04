@@ -214,6 +214,27 @@ function zid_packages_remove_legacy_watchdogs() {
 	return $changed;
 }
 
+function zid_packages_remove_legacy_auto_update_cron() {
+	config_lock();
+	$changed = zid_packages_remove_cron_jobs_where(function ($job) {
+		$job_cmd = (string)($job['command'] ?? '');
+		$job_descr = (string)($job['descr'] ?? '');
+		if (strpos($job_cmd, 'zid-packages auto-update') !== false) {
+			return true;
+		}
+		if (strpos($job_descr, 'auto-update') !== false) {
+			return true;
+		}
+		return false;
+	});
+	if ($changed) {
+		zid_packages_configure_cron_compat();
+		@write_config('ZID Packages legacy auto-update cron removed');
+	}
+	config_unlock();
+	return $changed;
+}
+
 function zid_packages_log_tail($lines = 200) {
 	if (!file_exists(ZID_PACKAGES_LOG)) {
 		return array();

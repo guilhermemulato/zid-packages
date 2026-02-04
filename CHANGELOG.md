@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.4.49] - 2026-02-04
+- exibe ETA do auto update na aba Packages.
+
+## [0.4.51] - 2026-02-04
+- coluna Auto Update exibe ETA mesmo com limite 0 dias.
+
+## [0.4.50] - 2026-02-04
+- auto update temporário ajustado para 0 dias (executa no mesmo dia às 23:59).
+
+## [0.4.48] - 2026-02-04
+- auto update agora loga skip quando já executou no dia.
+
+## [0.4.47] - 2026-02-04
+- auto update passa a ser controlado pelo daemon (23:59), sem cron separado.
+
+## [0.4.46] - 2026-02-04
+- adiciona coluna Auto Update e atualização automática após 1 dia.
+
 ## [0.4.45] - 2026-02-04
 - update passa a reiniciar o daemon do zid-packages (onerestart).
 

@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
+	"zid-packages/internal/autoupdate"
 	"zid-packages/internal/licensing"
 	"zid-packages/internal/logx"
 	"zid-packages/internal/packages"
@@ -39,6 +41,8 @@ func main() {
 		handlePackage(logger, os.Args[2:])
 	case "daemon":
 		handleDaemon(logger, os.Args[2:])
+	case "auto-update":
+		handleAutoUpdate(logger, os.Args[2:])
 	default:
 		usage()
 		os.Exit(2)
@@ -53,6 +57,7 @@ func usage() {
 	fmt.Fprintln(os.Stderr, "  license sync")
 	fmt.Fprintln(os.Stderr, "  package install <pkg>")
 	fmt.Fprintln(os.Stderr, "  package update <pkg>")
+	fmt.Fprintln(os.Stderr, "  auto-update --once")
 	fmt.Fprintln(os.Stderr, "  daemon")
 }
 
@@ -136,4 +141,13 @@ func handleDaemon(logger *logx.Logger, args []string) {
 			os.Exit(1)
 		}
 	}
+}
+
+func handleAutoUpdate(logger *logx.Logger, args []string) {
+	if len(args) != 1 || args[0] != "--once" {
+		usage()
+		os.Exit(2)
+	}
+	now := time.Now().UTC()
+	autoupdate.RunOnce(logger, now)
 }

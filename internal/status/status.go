@@ -3,19 +3,24 @@ package status
 import (
 	"time"
 
+	"zid-packages/internal/autoupdate"
 	"zid-packages/internal/licensing"
 	"zid-packages/internal/packages"
 )
 
 type PackageStatus struct {
-	Key             string `json:"key"`
-	Installed       bool   `json:"installed"`
-	Enabled         bool   `json:"enabled"`
-	Licensed        bool   `json:"licensed"`
-	ServiceRunning  bool   `json:"service_running"`
-	VersionLocal    string `json:"version_installed"`
-	VersionRemote   string `json:"version_remote"`
-	UpdateAvailable bool   `json:"update_available"`
+	Key                     string `json:"key"`
+	Installed               bool   `json:"installed"`
+	Enabled                 bool   `json:"enabled"`
+	Licensed                bool   `json:"licensed"`
+	ServiceRunning          bool   `json:"service_running"`
+	VersionLocal            string `json:"version_installed"`
+	VersionRemote           string `json:"version_remote"`
+	UpdateAvailable         bool   `json:"update_available"`
+	AutoUpdateAgeDays       int    `json:"auto_update_age_days"`
+	AutoUpdateThresholdDays int    `json:"auto_update_threshold_days"`
+	AutoUpdateDue           bool   `json:"auto_update_due"`
+	AutoUpdateDueAt         int64  `json:"auto_update_due_at"`
 }
 
 type ServiceStatus struct {
@@ -45,7 +50,9 @@ func BuildStatus() Status {
 	out := make([]PackageStatus, 0, len(pkgs))
 
 	st, err := licensing.LoadState()
-	now := time.Now().UTC()
+	now := time.Now()
+	autoState, _ := autoupdate.Load()
+	autoChanged := false
 	mode := licensing.ModeNeverOK
 	validUntil := time.Time{}
 	reason := "never_ok"
@@ -64,16 +71,34 @@ func BuildStatus() Status {
 		}
 		enabled, _ := packages.Enabled(pkg.Key)
 		running, _ := packages.ServiceRunning(pkg.Key)
+		localVersion := packages.VersionLocal(pkg.Key)
+		remoteVersion := packages.VersionRemote(pkg.Key)
+		updateAvailable := packages.UpdateAvailableWith(localVersion, remoteVersion)
+		entry, changed := autoupdate.Update(&autoState, pkg.Key, updateAvailable, remoteVersion, now)
+		if changed {
+			autoChanged = true
+		}
+		autoAge := autoupdate.AgeDays(entry, now)
+		autoDue := autoupdate.Due(entry, now)
+		autoDueAt := autoupdate.DueAt(entry, autoupdate.ThresholdDays(), time.Local)
 		out = append(out, PackageStatus{
-			Key:             pkg.Key,
-			Installed:       packages.Installed(pkg.Key),
-			Enabled:         enabled,
-			Licensed:        licensed,
-			ServiceRunning:  running,
-			VersionLocal:    packages.VersionLocal(pkg.Key),
-			VersionRemote:   packages.VersionRemote(pkg.Key),
-			UpdateAvailable: packages.UpdateAvailable(pkg.Key),
+			Key:                     pkg.Key,
+			Installed:               packages.Installed(pkg.Key),
+			Enabled:                 enabled,
+			Licensed:                licensed,
+			ServiceRunning:          running,
+			VersionLocal:            localVersion,
+			VersionRemote:           remoteVersion,
+			UpdateAvailable:         updateAvailable,
+			AutoUpdateAgeDays:       autoAge,
+			AutoUpdateThresholdDays: autoupdate.ThresholdDays(),
+			AutoUpdateDue:           autoDue,
+			AutoUpdateDueAt:         unixOrZero(autoDueAt),
 		})
+	}
+
+	if autoChanged {
+		_ = autoupdate.Save(autoState)
 	}
 
 	services := buildServicesStatus(st.Licensed, licenseOK)

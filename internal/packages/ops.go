@@ -292,6 +292,10 @@ func VersionRemote(key string) string {
 func UpdateAvailable(key string) bool {
 	local := VersionLocal(key)
 	remote := VersionRemote(key)
+	return UpdateAvailableWith(local, remote)
+}
+
+func UpdateAvailableWith(local, remote string) bool {
 	if local == "" || remote == "" {
 		return false
 	}

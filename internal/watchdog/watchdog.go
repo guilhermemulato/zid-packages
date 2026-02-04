@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"zid-packages/internal/autoupdate"
 	"zid-packages/internal/ipc"
 	"zid-packages/internal/licensing"
 	"zid-packages/internal/logx"
@@ -107,6 +108,14 @@ func RunDaemon(logger *logx.Logger, interval time.Duration) error {
 		select {
 		case <-watchdogTicker.C:
 			_ = RunOnce(logger)
+			nowLocal := time.Now()
+			autoState, _ := autoupdate.Load()
+			if autoupdate.ShouldRunNow(autoState, nowLocal, 23, 59) {
+				logger.Info("auto-update schedule: running")
+				autoupdate.RunOnce(logger, nowLocal)
+			} else {
+				logger.Info("auto-update schedule: skip (already ran)")
+			}
 		case <-licenseTicker.C:
 			_ = licensing.Sync(logger)
 		case <-sigs:
