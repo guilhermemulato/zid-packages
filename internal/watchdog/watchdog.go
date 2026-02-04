@@ -25,12 +25,14 @@ const (
 type service struct {
 	Key         string
 	PackageKey  string
+	EnableKey   string
 	DisplayName string
 }
 
 var services = []service{
 	{Key: "zid-proxy", PackageKey: "zid-proxy", DisplayName: "zid-proxy"},
 	{Key: "zid-appid", PackageKey: "zid-proxy", DisplayName: "zid-appid"},
+	{Key: "zid-threatd", PackageKey: "zid-proxy", EnableKey: "zid-threatd", DisplayName: "zid-threatd"},
 	{Key: "zid-geolocation", PackageKey: "zid-geolocation", DisplayName: "zid-geolocation"},
 	{Key: "zid-logs", PackageKey: "zid-logs", DisplayName: "zid-logs"},
 }
@@ -55,7 +57,11 @@ func RunOnce(logger *logx.Logger) error {
 		if !packages.Installed(svc.PackageKey) {
 			continue
 		}
-		enabled, _ := packages.Enabled(svc.PackageKey)
+		enableKey := svc.PackageKey
+		if svc.EnableKey != "" {
+			enableKey = svc.EnableKey
+		}
+		enabled, _ := packages.Enabled(enableKey)
 		licensed := licenseOK && st.Licensed[svc.PackageKey]
 		shouldRun := enabled && licensed
 
@@ -67,7 +73,7 @@ func RunOnce(logger *logx.Logger) error {
 		if !shouldRun && running {
 			logger.Info("watchdog stop: " + svc.DisplayName + watchdogReason(enabled, licensed, mode))
 			if !enabled {
-				logger.Info("watchdog enable snapshot: " + svc.DisplayName + " " + formatEnableSnapshot(svc.PackageKey))
+				logger.Info("watchdog enable snapshot: " + svc.DisplayName + " " + formatEnableSnapshot(enableKey))
 			}
 			_ = packages.StopService(svc.Key)
 		}

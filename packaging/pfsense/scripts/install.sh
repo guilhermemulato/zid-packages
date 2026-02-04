@@ -228,8 +228,8 @@ set_rc_conf "localpkg_enable" "YES" "/etc/rc.conf.local"
 ensure_local_startup
 
 if [ -x /usr/local/etc/rc.d/zid_packages ]; then
-    echo "Starting zid-packages daemon..."
-    /usr/local/etc/rc.d/zid_packages onestart || true
+    echo "Restarting zid-packages daemon..."
+    /usr/local/etc/rc.d/zid_packages onerestart || true
 fi
 
 echo "========================================="

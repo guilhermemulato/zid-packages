@@ -235,7 +235,7 @@ func (s *Server) respond(req Request, resp Response) Response {
 }
 
 func (s *Server) logAttempt(req Request, resp Response) {
-	if s.logger == nil {
+	if s.logger == nil || !s.debug {
 		return
 	}
 	msg := "ipc response pkg=" + req.Package + " ok=" + strconv.FormatBool(resp.OK) + " licensed=" + strconv.FormatBool(resp.Licensed) + " mode=" + resp.Mode + " reason=" + resp.Reason

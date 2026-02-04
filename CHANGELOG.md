@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.45] - 2026-02-04
+- update passa a reiniciar o daemon do zid-packages (onerestart).
+
+## [0.4.44] - 2026-02-04
+- remove logs de resposta IPC em modo normal (somente com ZID_PACKAGES_IPC_DEBUG=1).
+
+## [0.4.43] - 2026-02-04
+- adiciona zid-threatd no watchdog e na aba Services.
+
 ## [0.4.42] - 2026-02-03
 - Corrige detecção de versão local para pacotes com mais de 5 segmentos (ex.: 1.0.1.9.3.7).
 

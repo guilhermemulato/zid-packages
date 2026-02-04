@@ -94,17 +94,21 @@ func BuildStatus() Status {
 func buildServicesStatus(licensed map[string]bool, licenseOK bool) []ServiceStatus {
 	services := []ServiceStatus{}
 
-	services = append(services, serviceStatus("zid-packages", "zid-packages", licensed, licenseOK))
-	services = append(services, serviceStatus("zid-proxy", "zid-proxy", licensed, licenseOK))
-	services = append(services, serviceStatus("zid-appid", "zid-proxy", licensed, licenseOK))
-	services = append(services, serviceStatus("zid-geolocation", "zid-geolocation", licensed, licenseOK))
-	services = append(services, serviceStatus("zid-logs", "zid-logs", licensed, licenseOK))
+	services = append(services, serviceStatus("zid-packages", "zid-packages", "", licensed, licenseOK))
+	services = append(services, serviceStatus("zid-proxy", "zid-proxy", "", licensed, licenseOK))
+	services = append(services, serviceStatus("zid-appid", "zid-proxy", "", licensed, licenseOK))
+	services = append(services, serviceStatus("zid-threatd", "zid-proxy", "zid-threatd", licensed, licenseOK))
+	services = append(services, serviceStatus("zid-geolocation", "zid-geolocation", "", licensed, licenseOK))
+	services = append(services, serviceStatus("zid-logs", "zid-logs", "", licensed, licenseOK))
 
 	return services
 }
 
-func serviceStatus(key, packageKey string, licensed map[string]bool, licenseOK bool) ServiceStatus {
-	enabled, _ := packages.Enabled(packageKey)
+func serviceStatus(key, packageKey, enableKey string, licensed map[string]bool, licenseOK bool) ServiceStatus {
+	if enableKey == "" {
+		enableKey = packageKey
+	}
+	enabled, _ := packages.Enabled(enableKey)
 	running, _ := packages.ServiceRunning(key)
 	licensedOK := licenseOK && licensed[packageKey]
 	return ServiceStatus{

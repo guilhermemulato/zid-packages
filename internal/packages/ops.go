@@ -19,6 +19,7 @@ import (
 const (
 	proxyBin       = "/usr/local/sbin/zid-proxy"
 	appidBin       = "/usr/local/sbin/zid-appid"
+	threatdBin     = "/usr/local/sbin/zid-threatd"
 	geolocationBin = "/usr/local/sbin/zid-geolocation"
 	logsBin        = "/usr/local/sbin/zid-logs"
 	packagesBin    = "/usr/local/sbin/zid-packages"
@@ -93,6 +94,36 @@ func Enabled(key string) (bool, error) {
 			return cached, nil
 		}
 		return false, nil
+	case "zid-threatd":
+		if b, ok := readEnableViaPHP("zid-threatd"); ok {
+			logEnable(key, "php:installedpackages/zidproxy/config/threat_enable", boolString(b), true)
+			return cacheEnabled(key, b), nil
+		}
+		val, ok := readConfigXMLValueRetry([]string{"installedpackages", "zidproxy", "config", "threat_enable"}, 3)
+		logEnable(key, "config:installedpackages/zidproxy/config/threat_enable", val, ok)
+		if ok {
+			return cacheEnabled(key, isOn(val)), nil
+		}
+		val, ok = readConfigXMLValueRetry([]string{"zidproxy", "config", "threat_enable"}, 3)
+		logEnable(key, "config:zidproxy/config/threat_enable", val, ok)
+		if ok {
+			return cacheEnabled(key, isOn(val)), nil
+		}
+		val, ok = readConfigXMLValueLooseRetry([]string{"installedpackages", "zidproxy", "config", "threat_enable"}, 3)
+		logEnable(key, "config-loose:installedpackages/zidproxy/config/threat_enable", val, ok)
+		if ok {
+			return cacheEnabled(key, isOn(val)), nil
+		}
+		val, ok = readConfigXMLValueLooseRetry([]string{"zidproxy", "config", "threat_enable"}, 3)
+		logEnable(key, "config-loose:zidproxy/config/threat_enable", val, ok)
+		if ok {
+			return cacheEnabled(key, isOn(val)), nil
+		}
+		if cached, ok := cachedEnabled(key); ok {
+			logEnable(key, "cache", boolString(cached), true)
+			return cached, nil
+		}
+		return false, nil
 	case "zid-geolocation":
 		if b, ok := readEnableViaPHP("zid-geolocation"); ok {
 			logEnable(key, "php:installedpackages/zidgeolocation/config/enable", boolString(b), true)
@@ -145,6 +176,11 @@ func EnableSnapshot(key string) map[string]string {
 		out["config:zidproxy/config/enable"] = readValueOrEmpty([]string{"zidproxy", "config", "enable"})
 		out["config-loose:installedpackages/zidproxy/config/enable"] = readValueLooseOrEmpty([]string{"installedpackages", "zidproxy", "config", "enable"})
 		out["config-loose:zidproxy/config/enable"] = readValueLooseOrEmpty([]string{"zidproxy", "config", "enable"})
+	case "zid-threatd":
+		out["config:installedpackages/zidproxy/config/threat_enable"] = readValueOrEmpty([]string{"installedpackages", "zidproxy", "config", "threat_enable"})
+		out["config:zidproxy/config/threat_enable"] = readValueOrEmpty([]string{"zidproxy", "config", "threat_enable"})
+		out["config-loose:installedpackages/zidproxy/config/threat_enable"] = readValueLooseOrEmpty([]string{"installedpackages", "zidproxy", "config", "threat_enable"})
+		out["config-loose:zidproxy/config/threat_enable"] = readValueLooseOrEmpty([]string{"zidproxy", "config", "threat_enable"})
 	case "zid-geolocation":
 		out["config:installedpackages/zidgeolocation/config/enable"] = readValueOrEmpty([]string{"installedpackages", "zidgeolocation", "config", "enable"})
 		out["config:zidgeolocation/config/enable"] = readValueOrEmpty([]string{"zidgeolocation", "config", "enable"})
@@ -169,6 +205,8 @@ func ServiceRunning(key string) (bool, error) {
 		return pgrepRunning("^/usr/local/sbin/zid-logs"), nil
 	case "zid-appid":
 		return pgrepRunning("^/usr/local/sbin/zid-appid"), nil
+	case "zid-threatd":
+		return pgrepRunning("^/usr/local/sbin/zid-threatd"), nil
 	default:
 		return false, errors.New("unknown service")
 	}
@@ -186,6 +224,11 @@ func StartService(key string) error {
 		return run("/usr/local/etc/rc.d/zid_logs", "onestart")
 	case "zid-appid":
 		return startAppID()
+	case "zid-threatd":
+		if !fileExists(threatdBin) {
+			return errors.New("threatd binary not found")
+		}
+		return run("/usr/local/etc/rc.d/zid-threatd", "start")
 	default:
 		return errors.New("unknown service")
 	}
@@ -203,6 +246,8 @@ func StopService(key string) error {
 		return run("/usr/local/etc/rc.d/zid_logs", "onestop")
 	case "zid-appid":
 		return stopAppID()
+	case "zid-threatd":
+		return run("/usr/local/etc/rc.d/zid-threatd", "stop")
 	default:
 		return errors.New("unknown service")
 	}
@@ -427,6 +472,8 @@ func readEnableViaPHP(key string) (bool, bool) {
 	switch key {
 	case "zid-proxy":
 		expr = `$cfg=$config["installedpackages"]["zidproxy"]["config"][0] ?? []; $val=$cfg["enable"] ?? ""; echo ($val === "on" || $val === "true" || $val === "1" || $val === true || $val === 1) ? "1" : "0";`
+	case "zid-threatd":
+		expr = `$cfg=$config["installedpackages"]["zidproxy"]["config"][0] ?? []; $val=$cfg["threat_enable"] ?? ""; echo ($val === "on" || $val === "true" || $val === "1" || $val === true || $val === 1) ? "1" : "0";`
 	case "zid-geolocation":
 		expr = `$cfg=$config["installedpackages"]["zidgeolocation"]["config"][0] ?? []; $val=$cfg["enable"] ?? ""; echo ($val === "on" || $val === "true" || $val === "1" || $val === true || $val === 1) ? "1" : "0";`
 	default:

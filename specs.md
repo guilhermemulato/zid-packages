@@ -10,7 +10,7 @@ Ele fornece:
 - **Empacotamento/bundles** para distribuição via S3.
 
 Pacotes controlados:
-- `zid-proxy` (inclui `zid-appid`)
+- `zid-proxy` (inclui `zid-appid` e `zid-threatd`)
 - `zid-geolocation`
 - `zid-logs`
 - `zid-packages` (self, com licença N/A)
@@ -140,7 +140,7 @@ shouldRun = enabled && licensed
 ```
 E inicia/para:
 ```
-zid-proxy, zid-appid, zid-geolocation, zid-logs
+zid-proxy, zid-appid, zid-threatd, zid-geolocation, zid-logs
 ```
 
 ### Logs
@@ -212,6 +212,7 @@ make bundle-latest
 - Garante `localpkg_enable=YES` e `local_startup` com `/usr/local/etc/rc.d`
 - Instala `zid_packages.sh` para execucao via localpkg (localpkg executa apenas scripts *.sh)
 - Mantem `zid_packages` como wrapper para uso manual/compatibilidade
+- Reinicia o daemon do `zid-packages` ao final (onerestart)
 ### update.sh
 — Reinstala bundle (sem desinstalar)
 ### uninstall.sh
@@ -225,6 +226,7 @@ make bundle-latest
 - `/usr/local/sbin/zid-packages`
 - `/usr/local/sbin/zid-proxy`
 - `/usr/local/sbin/zid-appid`
+- `/usr/local/sbin/zid-threatd`
 - `/usr/local/sbin/zid-geolocation`
 - `/usr/local/sbin/zid-logs`
 
