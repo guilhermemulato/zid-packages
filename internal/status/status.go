@@ -79,8 +79,8 @@ func BuildStatus() Status {
 			autoChanged = true
 		}
 		autoAge := autoupdate.AgeDays(entry, now)
-		autoDue := autoupdate.Due(entry, now)
-		autoDueAt := autoupdate.DueAt(entry, autoupdate.ThresholdDays(), time.Local)
+		autoDue := autoupdate.DueWithState(entry, now, autoState)
+		autoDueAt := autoupdate.DueAtWithState(entry, autoupdate.ThresholdDays(), time.Local, autoState, now)
 		out = append(out, PackageStatus{
 			Key:                     pkg.Key,
 			Installed:               packages.Installed(pkg.Key),

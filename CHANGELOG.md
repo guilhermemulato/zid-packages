@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.57] - 2026-02-05
+- auto-update: horario de schedule/ETA voltou para 23:59.
+
+## [0.4.55] - 2026-02-05
+- auto-update: ETA considera ultimo run do dia e mostra proximo horario.
+- zid-logs: leitura de versao local agora inclui arquivo VERSION.
+
 ## [0.4.54] - 2026-02-05
 - auto-update: horario de schedule/ETA ajustado para 17:10 (teste).
 

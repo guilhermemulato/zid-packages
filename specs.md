@@ -174,7 +174,7 @@ Snapshot automático quando para por `enabled=false`.
 ### Abas
 **Packages**  
 Lista pacotes, versão local/remota, update e status.
-Coluna **Auto Update** mostra contador de dias desde a versão ficar disponível e indica quando está **Due** para atualização automática (17:10, via daemon), com ETA exibido.
+Coluna **Auto Update** mostra contador de dias desde a versão ficar disponível e indica quando está **Due** para atualização automática (23:59, via daemon), com ETA exibido.
 
 **Services**  
 Tabela com serviços, status e licença.  
@@ -219,7 +219,7 @@ make bundle-latest
 ### update.sh
 — Reinstala bundle (sem desinstalar)
 ### auto-update (daemon)
-— Verificado diariamente às 17:10 pelo daemon e executa update automático quando a versão estiver disponível há **0 dias** (temporário para testes).
+— Verificado diariamente às 23:59 pelo daemon e executa update automático quando a versão estiver disponível há **0 dias** (temporário para testes).
 ### uninstall.sh
 — Remove GUI/priv/incs e unregister
 

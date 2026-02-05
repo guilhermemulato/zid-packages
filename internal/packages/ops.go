@@ -315,6 +315,9 @@ func VersionLocal(key string) string {
 		if xmlv := readPackageXMLVersion("/usr/local/pkg/zid-logs.xml"); xmlv != "" {
 			return xmlv
 		}
+		if v := readVersionFile("/usr/local/share/pfSense-pkg-zid-logs/VERSION"); v != "" {
+			return v
+		}
 		return readBinaryVersion(logsBin)
 	case "zid-access":
 		if v := readConfigXMLPackageVersion("zid-access"); v != "" {

@@ -11,8 +11,8 @@ const (
 	StatePath      = "/var/db/zid-packages/auto-update.json"
 	MinDays        = 0
 	daySeconds     = 24 * time.Hour
-	ScheduleHour   = 17
-	ScheduleMinute = 10
+	ScheduleHour   = 23
+	ScheduleMinute = 59
 )
 
 type Entry struct {
@@ -126,6 +126,32 @@ func DueAt(entry Entry, days int, loc *time.Location) time.Time {
 	firstSeen := time.Unix(entry.FirstSeen, 0).In(loc)
 	base := time.Date(firstSeen.Year(), firstSeen.Month(), firstSeen.Day(), ScheduleHour, ScheduleMinute, 0, 0, loc)
 	return base.AddDate(0, 0, days)
+}
+
+func DueWithState(entry Entry, now time.Time, st State) bool {
+	dueAt := DueAtWithState(entry, ThresholdDays(), now.Location(), st, now)
+	if dueAt.IsZero() {
+		return false
+	}
+	return !now.Before(dueAt)
+}
+
+func DueAtWithState(entry Entry, days int, loc *time.Location, st State, now time.Time) time.Time {
+	dueAt := DueAt(entry, days, loc)
+	if dueAt.IsZero() {
+		return time.Time{}
+	}
+	if loc == nil {
+		loc = time.Local
+	}
+	today := now.In(loc).Format("2006-01-02")
+	if st.LastRunDay != "" && st.LastRunDay == today {
+		next := time.Date(now.In(loc).Year(), now.In(loc).Month(), now.In(loc).Day(), ScheduleHour, ScheduleMinute, 0, 0, loc).AddDate(0, 0, 1)
+		if dueAt.Before(next) {
+			return next
+		}
+	}
+	return dueAt
 }
 
 func ShouldRunNow(st State, now time.Time, hour, minute int) bool {
