@@ -13,6 +13,7 @@ Pacotes controlados:
 - `zid-proxy` (inclui `zid-appid` e `zid-threatd`)
 - `zid-geolocation`
 - `zid-logs`
+- `zid-access`
 - `zid-packages` (self, com licença N/A)
 
 ---
@@ -141,7 +142,7 @@ shouldRun = enabled && licensed
 ```
 E inicia/para:
 ```
-zid-proxy, zid-appid, zid-threatd, zid-geolocation, zid-logs
+zid-proxy, zid-appid, zid-threatd, zid-geolocation, zid-logs, zid-access
 ```
 
 ### Logs
@@ -173,7 +174,7 @@ Snapshot automático quando para por `enabled=false`.
 ### Abas
 **Packages**  
 Lista pacotes, versão local/remota, update e status.
-Coluna **Auto Update** mostra contador de dias desde a versão ficar disponível e indica quando está **Due** para atualização automática (23:59, via daemon), com ETA exibido.
+Coluna **Auto Update** mostra contador de dias desde a versão ficar disponível e indica quando está **Due** para atualização automática (17:10, via daemon), com ETA exibido.
 
 **Services**  
 Tabela com serviços, status e licença.  
@@ -218,7 +219,7 @@ make bundle-latest
 ### update.sh
 — Reinstala bundle (sem desinstalar)
 ### auto-update (daemon)
-— Verificado diariamente às 23:59 pelo daemon e executa update automático quando a versão estiver disponível há **0 dias** (temporário para testes).
+— Verificado diariamente às 17:10 pelo daemon e executa update automático quando a versão estiver disponível há **0 dias** (temporário para testes).
 ### uninstall.sh
 — Remove GUI/priv/incs e unregister
 
@@ -233,6 +234,7 @@ make bundle-latest
 - `/usr/local/sbin/zid-threatd`
 - `/usr/local/sbin/zid-geolocation`
 - `/usr/local/sbin/zid-logs`
+- `/usr/local/sbin/zidaccess`
 
 **Socket**
 - `/var/run/zid-packages.sock`
@@ -312,10 +314,11 @@ env ZID_PACKAGES_IPC_DEBUG=1 /usr/local/sbin/zid-packages daemon
                v           v
         zid-proxy     zid-geolocation
         zid-appid     zid-logs
+        zid-access
 
    IPC (Unix socket /var/run/zid-packages.sock)
    ---------------------------------------------
-   zid-proxy/zid-geolocation/zid-logs -> CHECK -> zid-packages
+   zid-proxy/zid-geolocation/zid-logs/zid-access -> CHECK -> zid-packages
    (HMAC/HKDF)                             (valida e responde)
 ```
 

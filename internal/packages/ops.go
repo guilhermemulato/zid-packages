@@ -22,6 +22,7 @@ const (
 	threatdBin     = "/usr/local/sbin/zid-threatd"
 	geolocationBin = "/usr/local/sbin/zid-geolocation"
 	logsBin        = "/usr/local/sbin/zid-logs"
+	accessBin      = "/usr/local/sbin/zidaccess"
 	packagesBin    = "/usr/local/sbin/zid-packages"
 )
 
@@ -49,6 +50,8 @@ func Installed(key string) bool {
 		return fileExists(geolocationBin)
 	case "zid-logs":
 		return fileExists(logsBin)
+	case "zid-access":
+		return fileExists(accessBin)
 	default:
 		return false
 	}
@@ -163,6 +166,36 @@ func Enabled(key string) (bool, error) {
 			return b, nil
 		}
 		return false, nil
+	case "zid-access":
+		if b, ok := readEnableViaPHP("zid-access"); ok {
+			logEnable(key, "php:installedpackages/zidaccess/config/enable", boolString(b), true)
+			return cacheEnabled(key, b), nil
+		}
+		val, ok := readConfigXMLValueRetry([]string{"installedpackages", "zidaccess", "config", "enable"}, 3)
+		logEnable(key, "config:installedpackages/zidaccess/config/enable", val, ok)
+		if ok {
+			return cacheEnabled(key, isOn(val)), nil
+		}
+		val, ok = readConfigXMLValueRetry([]string{"zidaccess", "config", "enable"}, 3)
+		logEnable(key, "config:zidaccess/config/enable", val, ok)
+		if ok {
+			return cacheEnabled(key, isOn(val)), nil
+		}
+		val, ok = readConfigXMLValueLooseRetry([]string{"installedpackages", "zidaccess", "config", "enable"}, 3)
+		logEnable(key, "config-loose:installedpackages/zidaccess/config/enable", val, ok)
+		if ok {
+			return cacheEnabled(key, isOn(val)), nil
+		}
+		val, ok = readConfigXMLValueLooseRetry([]string{"zidaccess", "config", "enable"}, 3)
+		logEnable(key, "config-loose:zidaccess/config/enable", val, ok)
+		if ok {
+			return cacheEnabled(key, isOn(val)), nil
+		}
+		if cached, ok := cachedEnabled(key); ok {
+			logEnable(key, "cache", boolString(cached), true)
+			return cached, nil
+		}
+		return false, nil
 	default:
 		return false, errors.New("unknown package")
 	}
@@ -189,6 +222,11 @@ func EnableSnapshot(key string) map[string]string {
 		if b, ok := readJSONBool("/usr/local/etc/zid-geolocation/config.json", "enable"); ok {
 			out["config-json:/usr/local/etc/zid-geolocation/config.json"] = boolString(b)
 		}
+	case "zid-access":
+		out["config:installedpackages/zidaccess/config/enable"] = readValueOrEmpty([]string{"installedpackages", "zidaccess", "config", "enable"})
+		out["config:zidaccess/config/enable"] = readValueOrEmpty([]string{"zidaccess", "config", "enable"})
+		out["config-loose:installedpackages/zidaccess/config/enable"] = readValueLooseOrEmpty([]string{"installedpackages", "zidaccess", "config", "enable"})
+		out["config-loose:zidaccess/config/enable"] = readValueLooseOrEmpty([]string{"zidaccess", "config", "enable"})
 	}
 	return out
 }
@@ -203,6 +241,8 @@ func ServiceRunning(key string) (bool, error) {
 		return pgrepRunning("^/usr/local/sbin/zid-geolocation"), nil
 	case "zid-logs":
 		return pgrepRunning("^/usr/local/sbin/zid-logs"), nil
+	case "zid-access":
+		return pgrepRunning("/usr/local/sbin/zidaccess"), nil
 	case "zid-appid":
 		return pgrepRunning("^/usr/local/sbin/zid-appid"), nil
 	case "zid-threatd":
@@ -222,6 +262,8 @@ func StartService(key string) error {
 		return run("/usr/local/etc/rc.d/zid_geolocation", "onestart")
 	case "zid-logs":
 		return run("/usr/local/etc/rc.d/zid_logs", "onestart")
+	case "zid-access":
+		return run("/usr/local/etc/rc.d/zid-access.sh", "start")
 	case "zid-appid":
 		return startAppID()
 	case "zid-threatd":
@@ -244,6 +286,8 @@ func StopService(key string) error {
 		return run("/usr/local/etc/rc.d/zid_geolocation", "onestop")
 	case "zid-logs":
 		return run("/usr/local/etc/rc.d/zid_logs", "onestop")
+	case "zid-access":
+		return run("/usr/local/etc/rc.d/zid-access.sh", "stop")
 	case "zid-appid":
 		return stopAppID()
 	case "zid-threatd":
@@ -272,6 +316,14 @@ func VersionLocal(key string) string {
 			return xmlv
 		}
 		return readBinaryVersion(logsBin)
+	case "zid-access":
+		if v := readConfigXMLPackageVersion("zid-access"); v != "" {
+			return v
+		}
+		if v := readVersionFile("/usr/local/share/pfSense-pkg-zid-access/VERSION"); v != "" {
+			return v
+		}
+		return ""
 	default:
 		return ""
 	}
@@ -378,6 +430,14 @@ func readPackageXMLVersion(path string) string {
 	return ""
 }
 
+func readVersionFile(path string) string {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(data))
+}
+
 func readConfigXMLPackageVersion(pkgName string) string {
 	data, err := os.ReadFile(configXMLPath)
 	if err != nil {
@@ -480,6 +540,8 @@ func readEnableViaPHP(key string) (bool, bool) {
 		expr = `$cfg=$config["installedpackages"]["zidproxy"]["config"][0] ?? []; $val=$cfg["threat_enable"] ?? ""; echo ($val === "on" || $val === "true" || $val === "1" || $val === true || $val === 1) ? "1" : "0";`
 	case "zid-geolocation":
 		expr = `$cfg=$config["installedpackages"]["zidgeolocation"]["config"][0] ?? []; $val=$cfg["enable"] ?? ""; echo ($val === "on" || $val === "true" || $val === "1" || $val === true || $val === 1) ? "1" : "0";`
+	case "zid-access":
+		expr = `$cfg=$config["installedpackages"]["zidaccess"]["config"][0] ?? []; $val=$cfg["enable"] ?? ""; echo ($val === "on" || $val === "true" || $val === "1" || $val === true || $val === 1) ? "1" : "0";`
 	default:
 		return false, false
 	}

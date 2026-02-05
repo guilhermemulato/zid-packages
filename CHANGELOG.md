@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.54] - 2026-02-05
+- auto-update: horario de schedule/ETA ajustado para 17:10 (teste).
+
+## [0.4.53] - 2026-02-05
+- auto-update: remove logs de "skip" quando nao houver update.
+
+## [0.4.52] - 2026-02-05
+- adiciona suporte ao pacote zid-access nas rotinas de packages, services e watchdog.
+
 ## [0.4.49] - 2026-02-04
 - exibe ETA do auto update na aba Packages.
 

@@ -36,6 +36,7 @@ var services = []service{
 	{Key: "zid-threatd", PackageKey: "zid-proxy", EnableKey: "zid-threatd", DisplayName: "zid-threatd"},
 	{Key: "zid-geolocation", PackageKey: "zid-geolocation", DisplayName: "zid-geolocation"},
 	{Key: "zid-logs", PackageKey: "zid-logs", DisplayName: "zid-logs"},
+	{Key: "zid-access", PackageKey: "zid-access", DisplayName: "zid-access"},
 }
 
 func RunOnce(logger *logx.Logger) error {
@@ -110,11 +111,8 @@ func RunDaemon(logger *logx.Logger, interval time.Duration) error {
 			_ = RunOnce(logger)
 			nowLocal := time.Now()
 			autoState, _ := autoupdate.Load()
-			if autoupdate.ShouldRunNow(autoState, nowLocal, 23, 59) {
-				logger.Info("auto-update schedule: running")
+			if autoupdate.ShouldRunNow(autoState, nowLocal, autoupdate.ScheduleHour, autoupdate.ScheduleMinute) {
 				autoupdate.RunOnce(logger, nowLocal)
-			} else {
-				logger.Info("auto-update schedule: skip (already ran)")
 			}
 		case <-licenseTicker.C:
 			_ = licensing.Sync(logger)

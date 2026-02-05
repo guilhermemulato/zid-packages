@@ -50,6 +50,14 @@ var all = []Package{
 		UpdateCommand:     "/usr/local/sbin/zid-logs-update",
 		InstallScriptGlob: "*/pkg-zid-logs/install.sh",
 	},
+	{
+		Key:               "zid-access",
+		Name:              "ZID Access",
+		BundleURL:         "https://s3.soulsolucoes.com.br/soul/portal/zid-access-latest.tar.gz",
+		VersionURL:        "https://s3.soulsolucoes.com.br/soul/portal/zid-access-latest.version",
+		UpdateCommand:     "/usr/local/sbin/zid-access-update",
+		InstallScriptGlob: "*/pkg-zid-access/install.sh",
+	},
 }
 
 func All() []Package {

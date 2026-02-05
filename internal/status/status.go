@@ -125,6 +125,7 @@ func buildServicesStatus(licensed map[string]bool, licenseOK bool) []ServiceStat
 	services = append(services, serviceStatus("zid-threatd", "zid-proxy", "zid-threatd", licensed, licenseOK))
 	services = append(services, serviceStatus("zid-geolocation", "zid-geolocation", "", licensed, licenseOK))
 	services = append(services, serviceStatus("zid-logs", "zid-logs", "", licensed, licenseOK))
+	services = append(services, serviceStatus("zid-access", "zid-access", "", licensed, licenseOK))
 
 	return services
 }

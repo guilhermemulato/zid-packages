@@ -8,9 +8,11 @@ import (
 )
 
 const (
-	StatePath  = "/var/db/zid-packages/auto-update.json"
-	MinDays    = 0
-	daySeconds = 24 * time.Hour
+	StatePath      = "/var/db/zid-packages/auto-update.json"
+	MinDays        = 0
+	daySeconds     = 24 * time.Hour
+	ScheduleHour   = 17
+	ScheduleMinute = 10
 )
 
 type Entry struct {
@@ -122,7 +124,7 @@ func DueAt(entry Entry, days int, loc *time.Location) time.Time {
 		loc = time.Local
 	}
 	firstSeen := time.Unix(entry.FirstSeen, 0).In(loc)
-	base := time.Date(firstSeen.Year(), firstSeen.Month(), firstSeen.Day(), 23, 59, 0, 0, loc)
+	base := time.Date(firstSeen.Year(), firstSeen.Month(), firstSeen.Day(), ScheduleHour, ScheduleMinute, 0, 0, loc)
 	return base.AddDate(0, 0, days)
 }
 
