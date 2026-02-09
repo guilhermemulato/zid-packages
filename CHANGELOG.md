@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.4.63] - 2026-02-06
+- GUI: evita caixa de log aparecer quando update nao esta rodando; polling com cache-bust e stale detection.
+
+## [0.4.64] - 2026-02-06
+- Release de teste (sem mudancas de codigo).
+
+## [0.4.65] - 2026-02-06
+- GUI: marca update como stale quando PID nao corresponde ao update ou log nao avanca, evitando caixa persistente.
+
+## [0.4.62] - 2026-02-06
+- GUI: logs de update so aparecem quando acionados e podem ser fechados; polling inicia apenas quando update em execucao.
+
+## [0.4.61] - 2026-02-06
+- GUI: polling do update agora faz leitura incremental do log (stream completo) e evita truncamento.
+
+## [0.4.60] - 2026-02-06
+- GUI: polling do update agora usa fallback para submit normal e inclui CSRF no start.
+
+## [0.4.59] - 2026-02-06
+- GUI: update de pacotes agora exibe progresso via polling e log por pacote em tempo real.
+
+## [0.4.58] - 2026-02-06
+- GUI: update de pacotes na aba Packages agora roda em background para evitar timeout/erro 500 (output em /var/log/zid-packages.log).
+
 ## [0.4.57] - 2026-02-05
 - auto-update: horario de schedule/ETA voltou para 23:59.
 

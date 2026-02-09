@@ -175,6 +175,7 @@ Snapshot automático quando para por `enabled=false`.
 **Packages**  
 Lista pacotes, versão local/remota, update e status.
 Coluna **Auto Update** mostra contador de dias desde a versão ficar disponível e indica quando está **Due** para atualização automática (23:59, via daemon), com ETA exibido.
+Update manual na GUI roda em background e registra output no `/var/log/zid-packages-update-<pkg>.log`, com polling incremental (stream completo), fallback para submit normal e log exibido sob demanda na aba Packages (com botao fechar).
 
 **Services**  
 Tabela com serviços, status e licença.  
