@@ -259,7 +259,10 @@ func StartService(key string) error {
 	case "zid-proxy":
 		return run("/usr/local/etc/rc.d/zid-proxy.sh", "start")
 	case "zid-geolocation":
-		return run("/usr/local/etc/rc.d/zid_geolocation", "onestart")
+		if err := run("/usr/local/etc/rc.d/zid_geolocation", "onestart"); err != nil {
+			return err
+		}
+		return runServiceStartPostAction(key)
 	case "zid-logs":
 		return run("/usr/local/etc/rc.d/zid_logs", "onestart")
 	case "zid-access":
@@ -281,9 +284,13 @@ func StopService(key string) error {
 	case "zid-packages":
 		return run("/usr/local/etc/rc.d/zid_packages", "onestop")
 	case "zid-proxy":
-		return run("/usr/local/etc/rc.d/zid-proxy.sh", "stop")
+		stopErr := run("/usr/local/etc/rc.d/zid-proxy.sh", "stop")
+		cleanupErr := runServiceFirewallCleanup(key)
+		return errors.Join(stopErr, cleanupErr)
 	case "zid-geolocation":
-		return run("/usr/local/etc/rc.d/zid_geolocation", "onestop")
+		stopErr := run("/usr/local/etc/rc.d/zid_geolocation", "onestop")
+		cleanupErr := runServiceFirewallCleanup(key)
+		return errors.Join(stopErr, cleanupErr)
 	case "zid-logs":
 		return run("/usr/local/etc/rc.d/zid_logs", "onestop")
 	case "zid-access":
@@ -295,6 +302,66 @@ func StopService(key string) error {
 	default:
 		return errors.New("unknown service")
 	}
+}
+
+func runServiceStartPostAction(key string) error {
+	includePath, functionName, ok := serviceStartPostAction(key)
+	if !ok {
+		return nil
+	}
+	if !fileExists(includePath) {
+		return nil
+	}
+	php := phpBin()
+	if php == "" {
+		return nil
+	}
+	cmd := exec.Command(php, "-r", servicePHPFunctionScript(includePath, functionName))
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+func serviceStartPostAction(key string) (includePath string, functionName string, ok bool) {
+	switch key {
+	case "zid-geolocation":
+		return "/usr/local/pkg/zid-geolocation.inc", "zid_geolocation_apply_async", true
+	default:
+		return "", "", false
+	}
+}
+
+func runServiceFirewallCleanup(key string) error {
+	includePath, functionName, ok := serviceFirewallCleanupAction(key)
+	if !ok {
+		return nil
+	}
+	if !fileExists(includePath) {
+		return nil
+	}
+	php := phpBin()
+	if php == "" {
+		return nil
+	}
+	cmd := exec.Command(php, "-r", servicePHPFunctionScript(includePath, functionName))
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+func serviceFirewallCleanupAction(key string) (includePath string, functionName string, ok bool) {
+	switch key {
+	case "zid-proxy":
+		return "/usr/local/pkg/zid-proxy.inc", "zidproxy_service_poststop_hook", true
+	case "zid-geolocation":
+		return "/usr/local/pkg/zid-geolocation.inc", "zid_geolocation_clear_floating_rules", true
+	default:
+		return "", "", false
+	}
+}
+
+func servicePHPFunctionScript(includePath, functionName string) string {
+	return `require_once("` + includePath + `"); if (function_exists("` + functionName + `")) { ` + functionName + `(); }`
 }
 
 func VersionLocal(key string) string {

@@ -145,6 +145,13 @@ E inicia/para:
 zid-proxy, zid-appid, zid-threatd, zid-geolocation, zid-logs, zid-access
 ```
 
+### Cleanup de regras de firewall no stop
+- Ao parar `zid-proxy`, o fluxo do watchdog executa o stop do serviço e também aciona o hook de pós-stop do pacote para remover a NAT auto-rule usada pelo aplicativo.
+- Ao parar `zid-geolocation`, o fluxo do watchdog executa o stop do serviço e também chama a limpeza de floating rules/aliases (`zid_geolocation_clear_floating_rules`) para remover as regras de firewall aplicadas pelo pacote.
+
+### Recriação de regras no start
+- Ao iniciar `zid-geolocation`, o fluxo do watchdog executa o start do serviço e dispara `zid_geolocation_apply_async` para recriar floating rules/aliases quando ainda não estiverem presentes.
+
 ### Logs
 Exemplo:
 ```

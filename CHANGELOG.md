@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.67] - 2026-02-13
+- Watchdog: ao iniciar `zid-geolocation`, agora dispara `apply` assíncrono para recriar floating rules/aliases quando estiverem ausentes.
+
+## [0.4.66] - 2026-02-13
+- Watchdog: ao parar `zid-geolocation` e `zid-proxy`, agora executa cleanup explícito de regras de firewall via hooks PHP (floating rules/aliases no geolocation e NAT auto-rule no proxy).
+
 ## [0.4.63] - 2026-02-06
 - GUI: evita caixa de log aparecer quando update nao esta rodando; polling com cache-bust e stale detection.
 
