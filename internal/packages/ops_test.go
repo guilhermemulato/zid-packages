@@ -81,3 +81,34 @@ func TestServicePHPFunctionScript(t *testing.T) {
 		t.Fatalf("servicePHPFunctionScript()=%q; want %q", got, want)
 	}
 }
+
+func TestEnableSnapshotZidAccess_HasLegacyKeys(t *testing.T) {
+	snap := EnableSnapshot("zid-access")
+	wantKeys := []string{
+		"php:installedpackages/(zidaccess|zid-access|zid_access)/config/enable",
+		"config:installedpackages/zidaccess/config/enable",
+		"config:installedpackages/zid-access/config/enable",
+		"config-loose:installedpackages/zid-access/config/enable",
+	}
+	for _, k := range wantKeys {
+		if _, ok := snap[k]; !ok {
+			t.Fatalf("EnableSnapshot(zid-access) missing key: %q", k)
+		}
+	}
+}
+
+func TestExtractNumericVersion(t *testing.T) {
+	tests := []struct {
+		in   string
+		want string
+	}{
+		{in: "0.2.3", want: "0.2.3"},
+		{in: "zid-logs version dev", want: ""},
+		{in: "pkg 1.2.3_4", want: "1.2.3"},
+	}
+	for _, tc := range tests {
+		if got := extractNumericVersion(tc.in); got != tc.want {
+			t.Fatalf("extractNumericVersion(%q)=%q; want %q", tc.in, got, tc.want)
+		}
+	}
+}

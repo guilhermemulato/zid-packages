@@ -164,6 +164,8 @@ Para evitar flapping, usa o mesmo método do zid-geolocation:
 - **PHP + config.inc** (fonte principal)
   - `require_once("/etc/inc/config.inc");`
   - lê `$config['installedpackages'][...]['config'][0]['enable']`
+  - para `zid-access`, aceita também seção legada `installedpackages/zid-access` (e `zid_access`) quando existir
+  - para `zid-access`, suporta config legada “quebrada” (lista escalar) onde `config[0]` é o enable (gera `<config>on</config>` repetido no XML)
 
 Fallbacks adicionais:
 - parse do `/conf/config.xml` (estrito + loose)

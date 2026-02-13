@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.69] - 2026-02-13
+- zid-access: detecção de enable agora suporta config legada em formato quebrado (lista escalar com `<config>on</config>` repetido).
+- zid-logs: versão local agora prioriza VERSION/xml e ignora version "dev" do registro no config.xml quando não for numérica.
+
+## [0.4.68] - 2026-02-13
+- Watchdog/GUI: corrige detecção de "Enabled" do `zid-access` aceitando chaves legadas (`zid-access`/`zid_access`).
+- Config XML: matcher estrito agora faz match por sufixo do path (ignora root `<pfsense>`), melhorando leituras de valores e versões.
+
 ## [0.4.67] - 2026-02-13
 - Watchdog: ao iniciar `zid-geolocation`, agora dispara `apply` assíncrono para recriar floating rules/aliases quando estiverem ausentes.
 

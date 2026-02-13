@@ -31,7 +31,7 @@ func readConfigXMLValue(path []string) (string, bool) {
 				stack = stack[:len(stack)-1]
 			}
 		case xml.CharData:
-			if len(stack) == len(path) && matchesPath(stack, path) {
+			if matchesPath(stack, path) {
 				val := strings.TrimSpace(string(t))
 				if val != "" {
 					return val, true
@@ -98,11 +98,15 @@ func readConfigXMLValueLooseRetry(path []string, attempts int) (string, bool) {
 }
 
 func matchesPath(stack, path []string) bool {
-	if len(stack) != len(path) {
+	if len(path) == 0 || len(stack) < len(path) {
 		return false
 	}
+	// Strict match: contiguous suffix. This allows callers to omit the root
+	// element (e.g. <pfsense> in pfSense config.xml) while still avoiding the
+	// overly-permissive "loose" matcher.
+	start := len(stack) - len(path)
 	for i := range path {
-		if stack[i] != path[i] {
+		if stack[start+i] != path[i] {
 			return false
 		}
 	}

@@ -168,28 +168,59 @@ func Enabled(key string) (bool, error) {
 		return false, nil
 	case "zid-access":
 		if b, ok := readEnableViaPHP("zid-access"); ok {
-			logEnable(key, "php:installedpackages/zidaccess/config/enable", boolString(b), true)
+			logEnable(key, "php:installedpackages/(zidaccess|zid-access|zid_access)/config/enable", boolString(b), true)
 			return cacheEnabled(key, b), nil
 		}
-		val, ok := readConfigXMLValueRetry([]string{"installedpackages", "zidaccess", "config", "enable"}, 3)
-		logEnable(key, "config:installedpackages/zidaccess/config/enable", val, ok)
-		if ok {
-			return cacheEnabled(key, isOn(val)), nil
+		sections := []string{"zidaccess", "zid-access", "zid_access"}
+		for _, section := range sections {
+			val, ok := readConfigXMLValueRetry([]string{"installedpackages", section, "config", "enable"}, 3)
+			logEnable(key, "config:installedpackages/"+section+"/config/enable", val, ok)
+			if ok {
+				return cacheEnabled(key, isOn(val)), nil
+			}
+			val, ok = readConfigXMLValueRetry([]string{section, "config", "enable"}, 3)
+			logEnable(key, "config:"+section+"/config/enable", val, ok)
+			if ok {
+				return cacheEnabled(key, isOn(val)), nil
+			}
 		}
-		val, ok = readConfigXMLValueRetry([]string{"zidaccess", "config", "enable"}, 3)
-		logEnable(key, "config:zidaccess/config/enable", val, ok)
-		if ok {
-			return cacheEnabled(key, isOn(val)), nil
+		// Formato quebrado (legado): lista escalar sem chaves (gera <config>valor</config> repetido).
+		// Nesse caso o primeiro <config> costuma ser o enable.
+		for _, section := range sections {
+			val, ok := readConfigXMLValueRetry([]string{"installedpackages", section, "config"}, 3)
+			logEnable(key, "config:installedpackages/"+section+"/config", val, ok)
+			if ok {
+				return cacheEnabled(key, isOn(val)), nil
+			}
+			val, ok = readConfigXMLValueRetry([]string{section, "config"}, 3)
+			logEnable(key, "config:"+section+"/config", val, ok)
+			if ok {
+				return cacheEnabled(key, isOn(val)), nil
+			}
 		}
-		val, ok = readConfigXMLValueLooseRetry([]string{"installedpackages", "zidaccess", "config", "enable"}, 3)
-		logEnable(key, "config-loose:installedpackages/zidaccess/config/enable", val, ok)
-		if ok {
-			return cacheEnabled(key, isOn(val)), nil
+		for _, section := range sections {
+			val, ok := readConfigXMLValueLooseRetry([]string{"installedpackages", section, "config", "enable"}, 3)
+			logEnable(key, "config-loose:installedpackages/"+section+"/config/enable", val, ok)
+			if ok {
+				return cacheEnabled(key, isOn(val)), nil
+			}
+			val, ok = readConfigXMLValueLooseRetry([]string{section, "config", "enable"}, 3)
+			logEnable(key, "config-loose:"+section+"/config/enable", val, ok)
+			if ok {
+				return cacheEnabled(key, isOn(val)), nil
+			}
 		}
-		val, ok = readConfigXMLValueLooseRetry([]string{"zidaccess", "config", "enable"}, 3)
-		logEnable(key, "config-loose:zidaccess/config/enable", val, ok)
-		if ok {
-			return cacheEnabled(key, isOn(val)), nil
+		for _, section := range sections {
+			val, ok := readConfigXMLValueLooseRetry([]string{"installedpackages", section, "config"}, 3)
+			logEnable(key, "config-loose:installedpackages/"+section+"/config", val, ok)
+			if ok {
+				return cacheEnabled(key, isOn(val)), nil
+			}
+			val, ok = readConfigXMLValueLooseRetry([]string{section, "config"}, 3)
+			logEnable(key, "config-loose:"+section+"/config", val, ok)
+			if ok {
+				return cacheEnabled(key, isOn(val)), nil
+			}
 		}
 		if cached, ok := cachedEnabled(key); ok {
 			logEnable(key, "cache", boolString(cached), true)
@@ -223,10 +254,22 @@ func EnableSnapshot(key string) map[string]string {
 			out["config-json:/usr/local/etc/zid-geolocation/config.json"] = boolString(b)
 		}
 	case "zid-access":
-		out["config:installedpackages/zidaccess/config/enable"] = readValueOrEmpty([]string{"installedpackages", "zidaccess", "config", "enable"})
-		out["config:zidaccess/config/enable"] = readValueOrEmpty([]string{"zidaccess", "config", "enable"})
-		out["config-loose:installedpackages/zidaccess/config/enable"] = readValueLooseOrEmpty([]string{"installedpackages", "zidaccess", "config", "enable"})
-		out["config-loose:zidaccess/config/enable"] = readValueLooseOrEmpty([]string{"zidaccess", "config", "enable"})
+		if b, ok := readEnableViaPHP("zid-access"); ok {
+			out["php:installedpackages/(zidaccess|zid-access|zid_access)/config/enable"] = boolString(b)
+		} else {
+			out["php:installedpackages/(zidaccess|zid-access|zid_access)/config/enable"] = ""
+		}
+		sections := []string{"zidaccess", "zid-access", "zid_access"}
+		for _, section := range sections {
+			out["config:installedpackages/"+section+"/config/enable"] = readValueOrEmpty([]string{"installedpackages", section, "config", "enable"})
+			out["config:"+section+"/config/enable"] = readValueOrEmpty([]string{section, "config", "enable"})
+			out["config-loose:installedpackages/"+section+"/config/enable"] = readValueLooseOrEmpty([]string{"installedpackages", section, "config", "enable"})
+			out["config-loose:"+section+"/config/enable"] = readValueLooseOrEmpty([]string{section, "config", "enable"})
+			out["config:installedpackages/"+section+"/config"] = readValueOrEmpty([]string{"installedpackages", section, "config"})
+			out["config:"+section+"/config"] = readValueOrEmpty([]string{section, "config"})
+			out["config-loose:installedpackages/"+section+"/config"] = readValueLooseOrEmpty([]string{"installedpackages", section, "config"})
+			out["config-loose:"+section+"/config"] = readValueLooseOrEmpty([]string{section, "config"})
+		}
 	}
 	return out
 }
@@ -376,14 +419,18 @@ func VersionLocal(key string) string {
 	case "zid-geolocation":
 		return readBinaryVersion(geolocationBin)
 	case "zid-logs":
-		if v := readConfigXMLPackageVersion("zid-logs"); v != "" {
-			return v
-		}
 		if xmlv := readPackageXMLVersion("/usr/local/pkg/zid-logs.xml"); xmlv != "" {
 			return xmlv
 		}
 		if v := readVersionFile("/usr/local/share/pfSense-pkg-zid-logs/VERSION"); v != "" {
 			return v
+		}
+		// config.xml pode conter version "dev" (ex.: "zid-logs version dev") dependendo de como o pacote foi registrado.
+		// Para exibir/comparar updates, precisamos de uma versao numerica.
+		if v := readConfigXMLPackageVersion("zid-logs"); v != "" {
+			if nv := extractNumericVersion(v); nv != "" {
+				return nv
+			}
 		}
 		return readBinaryVersion(logsBin)
 	case "zid-access":
@@ -459,6 +506,15 @@ func parseVersion(output string) string {
 		return match[1]
 	}
 	return strings.TrimSpace(strings.Split(output, "\n")[0])
+}
+
+func extractNumericVersion(output string) string {
+	re := regexp.MustCompile(`(\d+(?:\.\d+)+)`)
+	match := re.FindStringSubmatch(output)
+	if len(match) > 1 {
+		return match[1]
+	}
+	return ""
 }
 
 func compareVersion(a, b string) int {
@@ -611,7 +667,30 @@ func readEnableViaPHP(key string) (bool, bool) {
 	case "zid-geolocation":
 		expr = `$cfg=$config["installedpackages"]["zidgeolocation"]["config"][0] ?? []; $val=$cfg["enable"] ?? ""; echo ($val === "on" || $val === "true" || $val === "1" || $val === true || $val === 1) ? "1" : "0";`
 	case "zid-access":
-		expr = `$cfg=$config["installedpackages"]["zidaccess"]["config"][0] ?? []; $val=$cfg["enable"] ?? ""; echo ($val === "on" || $val === "true" || $val === "1" || $val === true || $val === 1) ? "1" : "0";`
+		expr = `$raw=null;
+if (isset($config["installedpackages"]["zidaccess"]["config"])) { $raw=$config["installedpackages"]["zidaccess"]["config"]; }
+elseif (isset($config["installedpackages"]["zid-access"]["config"])) { $raw=$config["installedpackages"]["zid-access"]["config"]; }
+elseif (isset($config["installedpackages"]["zid_access"]["config"])) { $raw=$config["installedpackages"]["zid_access"]["config"]; }
+$val="";
+// Formato quebrado (legado): lista escalar sem chaves. Primeiro item costuma ser o enable.
+if (is_array($raw) && isset($raw[0]) && !is_array($raw[0])) {
+  $val=$raw[0];
+} elseif (!is_array($raw) && $raw !== null) {
+  $val=$raw;
+} else {
+  $item=$raw;
+  if (is_array($raw) && isset($raw[0]) && is_array($raw[0])) { $item=$raw[0]; }
+  elseif (is_array($raw) && isset($raw["item"])) {
+    $i=$raw["item"];
+    if (is_array($i) && isset($i[0]) && is_array($i[0])) { $item=$i[0]; }
+    elseif (is_array($i)) { $item=$i; }
+  }
+  if (is_array($item)) {
+    if (array_key_exists("enable", $item)) { $val=$item["enable"]; }
+    elseif (array_key_exists("enabled", $item)) { $val=$item["enabled"]; }
+  }
+}
+echo ($val === "on" || $val === "true" || $val === "1" || $val === "yes" || $val === true || $val === 1) ? "1" : "0";`
 	default:
 		return false, false
 	}
