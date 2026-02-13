@@ -167,10 +167,30 @@ Para evitar flapping, usa o mesmo método do zid-geolocation:
   - para `zid-access`, aceita também seção legada `installedpackages/zid-access` (e `zid_access`) quando existir
   - para `zid-access`, suporta config legada “quebrada” (lista escalar) onde `config[0]` é o enable (gera `<config>on</config>` repetido no XML)
 
+#### zid-access: formatos legados de config
+O `zid-access` pode aparecer no `config.xml`/`$config` em formatos diferentes:
+- **Canônico** (preferido):
+  - `$config['installedpackages']['zidaccess']['config'][0]['enable'] = "on|off"`
+- **Legado** (associativo direto ou `item`):
+  - `$config['installedpackages']['zidaccess']['config']['enable']`
+  - `$config['installedpackages']['zidaccess']['config']['item'][0]['enable']`
+- **Quebrado (lista escalar)**: ocorre quando a config foi serializada como lista sem chaves.
+  - Exemplo no `config.xml`:
+    - `<zidaccess><config>on</config><config>wan</config>...</zidaccess>`
+  - Exemplo no `config.inc` (PHP):
+    - `$config['installedpackages']['zidaccess']['config'][0] === "on"`
+  - Nesse caso o primeiro `config` é tratado como **enable**.
+
+Recomendação: abrir a tela **Zid Access > Settings** e salvar uma vez para migrar para o formato canônico.
+
 Fallbacks adicionais:
 - parse do `/conf/config.xml` (estrito + loose)
 - cache temporário (TTL curto) quando leitura falha
 - para `zid-packages`, lê `/etc/rc.conf.local` ou `/etc/rc.conf` (aceita YES/NO)
+
+#### Matcher do config.xml (estrito vs loose)
+- **Estrito**: compara o *sufixo contíguo* do path, ignorando o root (ex.: `<pfsense>`). Ex.: path `installedpackages/zidaccess/config/enable` faz match com stack `pfsense/installedpackages/zidaccess/config/enable`.
+- **Loose**: compara *subsequência* (ordem preservada, mas permite pular níveis). É mais permissivo e serve como fallback para cenários de XML fora do esperado.
 
 Flags de debug de enable:
 - `ZID_PACKAGES_ENABLE_DEBUG=1` — loga fonte/valor lido
@@ -185,6 +205,7 @@ Snapshot automático quando para por `enabled=false`.
 Lista pacotes, versão local/remota, update e status.
 Coluna **Auto Update** mostra contador de dias desde a versão ficar disponível e indica quando está **Due** para atualização automática (23:59, via daemon), com ETA exibido.
 Update manual na GUI roda em background e registra output no `/var/log/zid-packages-update-<pkg>.log`, com polling incremental (stream completo), fallback para submit normal e log exibido sob demanda na aba Packages (com botao fechar).
+Para o `zid-packages`, o update é **seguro**: quando o daemon já está rodando, o installer não reinicia automaticamente e a GUI exibe badge **Restart pending** até o admin aplicar um restart em janela de manutenção.
 
 **Services**  
 Tabela com serviços, status e licença.  
@@ -225,15 +246,43 @@ make bundle-latest
 - Garante `localpkg_enable=YES` e `local_startup` com `/usr/local/etc/rc.d`
 - Instala `zid_packages.sh` para execucao via localpkg (localpkg executa apenas scripts *.sh)
 - Mantem `zid_packages` como wrapper para uso manual/compatibilidade
-- Reinicia o daemon do `zid-packages` ao final (onerestart)
+- Update seguro: **se o daemon do `zid-packages` já estiver rodando**, não reinicia automaticamente (evita downtime do IPC/licenciamento) e cria marcador `restart-pending` para aplicar na próxima janela de manutenção
+  - marker: `/var/db/zid-packages/restart-pending` (conteúdo = versão instalada)
+  - o marker é limpo automaticamente quando o daemon sobe novamente (após restart/reboot)
+  - para forçar restart no install/update: `ZID_PACKAGES_UPDATE_RESTART=1`
 ### update.sh
 — Reinstala bundle (sem desinstalar)
+### zid-packages-update (bootstrap)
+- Script instalado em `/usr/local/sbin/zid-packages-update`
+- Fluxo:
+  - baixa o bundle (`zid-packages-latest.tar.gz`)
+  - extrai em `/tmp`
+  - executa o `scripts/update.sh` de dentro do bundle
+  - `update.sh` chama `install.sh` (reinstala/atualiza arquivos)
+- Opções úteis:
+  - `-u <url>` para bundle custom
+  - `-f` para forçar update (mantido por compatibilidade; hoje o fluxo reinstala o bundle)
+  - `-k` para manter diretório temporário (debug)
 ### auto-update (daemon)
-— Verificado diariamente às 23:59 pelo daemon e executa update automático quando a versão estiver disponível há **0 dias** (temporário para testes).
+— Verificado diariamente às 23:59 (hora local) pelo daemon e executa update automático quando a versão estiver disponível há **0 dias** (temporário para testes).
+- Estado em `/var/db/zid-packages/auto-update.json`:
+  - por pacote: `version`, `first_seen`, `last_seen`
+  - global: `last_run_day` (evita rodar mais de 1x por dia)
+- Threshold (dias) é definido por `internal/autoupdate.MinDays` (exposto em `auto_update_threshold_days` no status).
+- Ordem: atualiza o `zid-packages` **por último** (reduz risco de interromper a rodada).
+- Quando atualizar o `zid-packages` via auto-update, o bundle é aplicado mas fica **Restart pending** (sem reiniciar automaticamente).
 ### uninstall.sh
 — Remove GUI/priv/incs e unregister
 
 ---
+
+## Detecção de versão local (pfSense)
+Heurística usada pelo `zid-packages status --json`:
+- `zid-packages`: tenta `config.xml` (registro do package) e depois `zid-packages -version`.
+- `zid-proxy`: `zid-proxy -version`.
+- `zid-geolocation`: `zid-geolocation -version`.
+- `zid-logs`: prioriza `/usr/local/pkg/zid-logs.xml` e `/usr/local/share/pfSense-pkg-zid-logs/VERSION`; se o `config.xml` tiver versão **não numérica** (ex.: `"zid-logs version dev"`), ela é ignorada para comparação.
+- `zid-access`: tenta `config.xml` (registro do package) e depois `/usr/local/share/pfSense-pkg-zid-access/VERSION`.
 
 ## Arquivos e paths relevantes (pfSense)
 
@@ -251,6 +300,10 @@ make bundle-latest
 
 **Logs**
 - `/var/log/zid-packages.log`
+
+**Estado**
+- `/var/db/zid-packages/auto-update.json`
+- `/var/db/zid-packages/restart-pending`
 
 **Config pfSense**
 - `/conf/config.xml`
@@ -290,7 +343,35 @@ Habilitar debug com:
 env ZID_PACKAGES_IPC_DEBUG=1 /usr/local/sbin/zid-packages daemon
 ```
 
+5) Enable (debug):
+```
+env ZID_PACKAGES_ENABLE_DEBUG=1 /usr/local/sbin/zid-packages watchdog --once
+tail -n 200 /var/log/zid-packages.log | egrep "enable read:|watchdog enable snapshot"
+```
+
+6) Restart pendente (self-update seguro):
+- Ver marcador:
+```
+ls -l /var/db/zid-packages/restart-pending
+cat /var/db/zid-packages/restart-pending
+```
+- Aplicar em janela de manutenção:
+```
+/usr/local/etc/rc.d/zid_packages onerestart
+```
+
 ---
+
+## Notas de compatibilidade (2026-02-13)
+- **zid-access Enabled falso na aba Packages/watchdog**:
+  - Causa: config legada serializada como lista escalar (`<zidaccess><config>on</config>...</zidaccess>`) sem chave `<enable>`.
+  - Solução: leitura do enable passou a aceitar `config[0]` (primeiro item) como enable; recomendado salvar Settings do `zid-access` para migrar ao formato canônico.
+- **zid-logs versão local aparecendo como "dev"**:
+  - Causa: o registro do pacote no `config.xml` podia conter string não numérica (ex.: `zid-logs version dev`).
+  - Solução: versão local agora prioriza `VERSION`/`zid-logs.xml` e ignora valor não numérico do `config.xml`.
+- **Self-update seguro do `zid-packages`**:
+  - Objetivo: evitar downtime do IPC (`/var/run/zid-packages.sock`) e derrubar os outros serviços por licenciamento.
+  - Implementação: installer não reinicia o daemon automaticamente quando já estiver rodando; cria `restart-pending` e a GUI exibe badge até o admin aplicar restart em manutenção.
 
 ## Diagrama de fluxo (ASCII)
 

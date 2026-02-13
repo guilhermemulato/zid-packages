@@ -21,6 +21,8 @@ type PackageStatus struct {
 	AutoUpdateThresholdDays int    `json:"auto_update_threshold_days"`
 	AutoUpdateDue           bool   `json:"auto_update_due"`
 	AutoUpdateDueAt         int64  `json:"auto_update_due_at"`
+	RestartPending          bool   `json:"restart_pending"`
+	RestartPendingVersion   string `json:"restart_pending_version,omitempty"`
 }
 
 type ServiceStatus struct {
@@ -81,6 +83,12 @@ func BuildStatus() Status {
 		autoAge := autoupdate.AgeDays(entry, now)
 		autoDue := autoupdate.DueWithState(entry, now, autoState)
 		autoDueAt := autoupdate.DueAtWithState(entry, autoupdate.ThresholdDays(), time.Local, autoState, now)
+
+		restartPending := false
+		restartPendingVersion := ""
+		if pkg.Key == "zid-packages" {
+			restartPending, restartPendingVersion = packages.RestartPendingInfo()
+		}
 		out = append(out, PackageStatus{
 			Key:                     pkg.Key,
 			Installed:               packages.Installed(pkg.Key),
@@ -94,6 +102,8 @@ func BuildStatus() Status {
 			AutoUpdateThresholdDays: autoupdate.ThresholdDays(),
 			AutoUpdateDue:           autoDue,
 			AutoUpdateDueAt:         unixOrZero(autoDueAt),
+			RestartPending:          restartPending,
+			RestartPendingVersion:   restartPendingVersion,
 		})
 	}
 

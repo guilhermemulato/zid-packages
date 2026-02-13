@@ -229,8 +229,36 @@ set_rc_conf "localpkg_enable" "YES" "/etc/rc.conf.local"
 ensure_local_startup
 
 if [ -x /usr/local/etc/rc.d/zid_packages ]; then
-    echo "Restarting zid-packages daemon..."
-    /usr/local/etc/rc.d/zid_packages onerestart || true
+    RESTART_PENDING_FILE="/var/db/zid-packages/restart-pending"
+
+    zid_packages_daemon_running() {
+        /usr/bin/pgrep -f "^/usr/local/sbin/zid-packages daemon" >/dev/null 2>&1
+    }
+
+    zid_packages_mark_restart_pending() {
+        ver="unknown"
+        if [ -x "${PREFIX}/sbin/zid-packages" ]; then
+            ver="$(${PREFIX}/sbin/zid-packages -version 2>/dev/null | awk '{print $2}' || true)"
+            ver="$(echo "${ver}" | tr -d '[:space:]')"
+            if [ -z "${ver}" ]; then
+                ver="unknown"
+            fi
+        fi
+        echo "${ver}" > "${RESTART_PENDING_FILE}" 2>/dev/null || true
+        chmod 0644 "${RESTART_PENDING_FILE}" 2>/dev/null || true
+    }
+
+    # Update seguro: nao reinicia o daemon automaticamente quando ele ja esta rodando,
+    # para evitar downtime do IPC e derrubar os outros servicos por licenciamento.
+    # Para forcar restart: export ZID_PACKAGES_UPDATE_RESTART=1 antes de rodar o update/install.
+    if zid_packages_daemon_running && [ "${ZID_PACKAGES_UPDATE_RESTART:-0}" != "1" ]; then
+        echo "[INFO] zid-packages daemon em execucao; pulando restart automatico (restart pendente)."
+        zid_packages_mark_restart_pending
+    else
+        rm -f "${RESTART_PENDING_FILE}" 2>/dev/null || true
+        echo "Restarting zid-packages daemon..."
+        /usr/local/etc/rc.d/zid_packages onerestart || true
+    fi
 fi
 
 echo "========================================="

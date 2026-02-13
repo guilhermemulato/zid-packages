@@ -88,6 +88,10 @@ func RunDaemon(logger *logx.Logger, interval time.Duration) error {
 		interval = watchdogInterval
 	}
 
+	// Se existe um update pendente (instalado sem restart), ao iniciar o daemon
+	// significa que o admin aplicou a manutencao/restart. Limpa o marcador.
+	packages.ClearRestartPending()
+
 	ipcServer := ipc.NewServer(logger)
 	if err := ipcServer.Start(); err != nil {
 		return err

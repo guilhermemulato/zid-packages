@@ -122,11 +122,23 @@ $packages = $status['packages'] ?? array();
 						$auto_threshold = intval($pkg['auto_update_threshold_days'] ?? 0);
 						$auto_due = !empty($pkg['auto_update_due']);
 						$auto_due_at = intval($pkg['auto_update_due_at'] ?? 0);
+						$restart_pending = !empty($pkg['restart_pending']);
+						$restart_pending_version = trim((string)($pkg['restart_pending_version'] ?? ''));
 					?>
 					<tr>
 						<td><?php echo htmlspecialchars($key); ?></td>
 						<td><?php echo $installed ? gettext('Yes') : gettext('No'); ?></td>
-						<td><?php echo htmlspecialchars($pkg['version_installed'] ?? '-'); ?></td>
+						<td>
+							<?php echo htmlspecialchars($pkg['version_installed'] ?? '-'); ?>
+							<?php if ($is_self && $restart_pending): ?>
+								<?php
+									$rp_title = $restart_pending_version !== '' ? ('Pending restart to apply ' . $restart_pending_version) : 'Pending restart to apply update';
+								?>
+								<span class="label label-warning" style="margin-left:6px;" title="<?php echo htmlspecialchars($rp_title); ?>">
+									<?php echo gettext('Restart pending'); ?>
+								</span>
+							<?php endif; ?>
+						</td>
 						<td><?php echo $has_remote ? htmlspecialchars($remote_version) : '-'; ?></td>
 						<td><?php echo $update_available ? gettext('Available') : ($has_remote ? gettext('OK') : gettext('N/A')); ?></td>
 						<td>

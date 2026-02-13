@@ -10,7 +10,25 @@ import (
 func RunOnce(logger *logx.Logger, now time.Time) {
 	st, _ := Load()
 	changed := false
-	for _, pkg := range packages.All() {
+	// Atualiza o próprio zid-packages por último. Mesmo com update seguro, isso
+	// reduz o risco de interromper a rodada quando algum ambiente ainda reinicia
+	// o daemon durante a instalação.
+	all := packages.All()
+	ordered := make([]packages.Package, 0, len(all))
+	var self *packages.Package
+	for _, pkg := range all {
+		if pkg.Key == "zid-packages" {
+			p := pkg
+			self = &p
+			continue
+		}
+		ordered = append(ordered, pkg)
+	}
+	if self != nil {
+		ordered = append(ordered, *self)
+	}
+
+	for _, pkg := range ordered {
 		if !packages.Installed(pkg.Key) {
 			if Clear(&st, pkg.Key) {
 				changed = true

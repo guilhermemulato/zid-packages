@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.70] - 2026-02-13
+- Update seguro do `zid-packages`: installer não reinicia o daemon automaticamente quando já estiver rodando (evita downtime do IPC/licenciamento) e marca `restart-pending`.
+- Status/GUI: expõe `restart_pending` e exibe badge "Restart pending" para o `zid-packages`.
+- auto-update: atualiza `zid-packages` por último na rotina diária.
+
 ## [0.4.69] - 2026-02-13
 - zid-access: detecção de enable agora suporta config legada em formato quebrado (lista escalar com `<config>on</config>` repetido).
 - zid-logs: versão local agora prioriza VERSION/xml e ignora version "dev" do registro no config.xml quando não for numérica.
