@@ -17,13 +17,14 @@ import (
 )
 
 const (
-	proxyBin       = "/usr/local/sbin/zid-proxy"
-	appidBin       = "/usr/local/sbin/zid-appid"
-	threatdBin     = "/usr/local/sbin/zid-threatd"
-	geolocationBin = "/usr/local/sbin/zid-geolocation"
-	logsBin        = "/usr/local/sbin/zid-logs"
-	accessBin      = "/usr/local/sbin/zidaccess"
-	packagesBin    = "/usr/local/sbin/zid-packages"
+	proxyBin        = "/usr/local/sbin/zid-proxy"
+	appidBin        = "/usr/local/sbin/zid-appid"
+	threatdBin      = "/usr/local/sbin/zid-threatd"
+	geolocationBin  = "/usr/local/sbin/zid-geolocation"
+	logsBin         = "/usr/local/sbin/zid-logs"
+	accessBin       = "/usr/local/sbin/zidaccess"
+	orchestratorBin = "/usr/local/sbin/zid-orchestration"
+	packagesBin     = "/usr/local/sbin/zid-packages"
 )
 
 const enabledCacheTTL = 2 * time.Minute
@@ -52,6 +53,8 @@ func Installed(key string) bool {
 		return fileExists(logsBin)
 	case "zid-access":
 		return fileExists(accessBin)
+	case "zid-orchestrator":
+		return fileExists(orchestratorBin)
 	default:
 		return false
 	}
@@ -227,6 +230,17 @@ func Enabled(key string) (bool, error) {
 			return cached, nil
 		}
 		return false, nil
+	case "zid-orchestrator":
+		if b, ok := readRCConfBool("/etc/rc.conf.local", "zid_orchestration_enable"); ok {
+			logEnable(key, "rc.conf.local:zid_orchestration_enable", boolString(b), true)
+			return b, nil
+		}
+		if b, ok := readRCConfBool("/etc/rc.conf", "zid_orchestration_enable"); ok {
+			logEnable(key, "rc.conf:zid_orchestration_enable", boolString(b), true)
+			return b, nil
+		}
+		logEnable(key, "rc.conf*:zid_orchestration_enable", "", false)
+		return false, nil
 	default:
 		return false, errors.New("unknown package")
 	}
@@ -270,6 +284,17 @@ func EnableSnapshot(key string) map[string]string {
 			out["config-loose:installedpackages/"+section+"/config"] = readValueLooseOrEmpty([]string{"installedpackages", section, "config"})
 			out["config-loose:"+section+"/config"] = readValueLooseOrEmpty([]string{section, "config"})
 		}
+	case "zid-orchestrator":
+		if b, ok := readRCConfBool("/etc/rc.conf.local", "zid_orchestration_enable"); ok {
+			out["rc.conf.local:zid_orchestration_enable"] = boolString(b)
+		} else {
+			out["rc.conf.local:zid_orchestration_enable"] = ""
+		}
+		if b, ok := readRCConfBool("/etc/rc.conf", "zid_orchestration_enable"); ok {
+			out["rc.conf:zid_orchestration_enable"] = boolString(b)
+		} else {
+			out["rc.conf:zid_orchestration_enable"] = ""
+		}
 	}
 	return out
 }
@@ -290,6 +315,8 @@ func ServiceRunning(key string) (bool, error) {
 		return pgrepRunning("^/usr/local/sbin/zid-appid"), nil
 	case "zid-threatd":
 		return pgrepRunning("^/usr/local/sbin/zid-threatd"), nil
+	case "zid-orchestrator":
+		return pgrepRunning("^/usr/local/sbin/zid-orchestration"), nil
 	default:
 		return false, errors.New("unknown service")
 	}
@@ -317,6 +344,8 @@ func StartService(key string) error {
 			return errors.New("threatd binary not found")
 		}
 		return run("/usr/local/etc/rc.d/zid-threatd", "start")
+	case "zid-orchestrator":
+		return run("/usr/local/etc/rc.d/zid_orchestration", "onestart")
 	default:
 		return errors.New("unknown service")
 	}
@@ -342,6 +371,8 @@ func StopService(key string) error {
 		return stopAppID()
 	case "zid-threatd":
 		return run("/usr/local/etc/rc.d/zid-threatd", "stop")
+	case "zid-orchestrator":
+		return run("/usr/local/etc/rc.d/zid_orchestration", "onestop")
 	default:
 		return errors.New("unknown service")
 	}
@@ -441,6 +472,14 @@ func VersionLocal(key string) string {
 			return v
 		}
 		return ""
+	case "zid-orchestrator":
+		if v := readConfigXMLPackageVersion("zid-orchestration"); v != "" {
+			return v
+		}
+		if v := readVersionFile("/usr/local/share/pfSense-pkg-zid-orchestration/VERSION"); v != "" {
+			return v
+		}
+		return readBinaryVersion(orchestratorBin)
 	default:
 		return ""
 	}
@@ -492,11 +531,13 @@ func readBinaryVersion(bin string) string {
 	if !fileExists(bin) {
 		return ""
 	}
-	out, err := exec.Command(bin, "-version").CombinedOutput()
-	if err != nil {
-		return ""
+	for _, arg := range []string{"-version", "--version"} {
+		out, err := exec.Command(bin, arg).CombinedOutput()
+		if err == nil {
+			return parseVersion(string(out))
+		}
 	}
-	return parseVersion(string(out))
+	return ""
 }
 
 func parseVersion(output string) string {

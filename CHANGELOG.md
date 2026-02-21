@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.71] - 2026-02-21
+- Adiciona suporte ao pacote `zid-orchestrator` nas rotinas centrais (`packages`, `services`, watchdog e auto-update).
+- Inclui controle de serviço do orchestrator via rc.d (`zid_orchestration`) e leitura de enable por `zid_orchestration_enable` em `rc.conf`.
+- Detecção de versão local do orchestrator via `config.xml` (`zid-orchestration`), arquivo `VERSION` e fallback no binário.
+- Licenciamento: adiciona compatibilidade de chave `zid-orchestrator`/`zid-orchestration`.
+
 ## [0.4.70] - 2026-02-13
 - Update seguro do `zid-packages`: installer não reinicia o daemon automaticamente quando já estiver rodando (evita downtime do IPC/licenciamento) e marca `restart-pending`.
 - Status/GUI: expõe `restart_pending` e exibe badge "Restart pending" para o `zid-packages`.

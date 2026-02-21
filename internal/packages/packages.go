@@ -58,6 +58,14 @@ var all = []Package{
 		UpdateCommand:     "/usr/local/sbin/zid-access-update",
 		InstallScriptGlob: "*/pkg-zid-access/install.sh",
 	},
+	{
+		Key:               "zid-orchestrator",
+		Name:              "ZID Orchestrator",
+		BundleURL:         "https://s3.soulsolucoes.com.br/soul/portal/zid-orchestrator-latest.tar.gz",
+		VersionURL:        "https://s3.soulsolucoes.com.br/soul/portal/zid-orchestrator-latest.version",
+		UpdateCommand:     "/usr/local/sbin/zid-orchestrator-update",
+		InstallScriptGlob: "*/pkg/pfSense-pkg-zid-orchestration/scripts/post-install",
+	},
 }
 
 func All() []Package {

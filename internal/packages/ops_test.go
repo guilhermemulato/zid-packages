@@ -97,6 +97,19 @@ func TestEnableSnapshotZidAccess_HasLegacyKeys(t *testing.T) {
 	}
 }
 
+func TestEnableSnapshotZidOrchestrator_HasRCKeys(t *testing.T) {
+	snap := EnableSnapshot("zid-orchestrator")
+	wantKeys := []string{
+		"rc.conf.local:zid_orchestration_enable",
+		"rc.conf:zid_orchestration_enable",
+	}
+	for _, k := range wantKeys {
+		if _, ok := snap[k]; !ok {
+			t.Fatalf("EnableSnapshot(zid-orchestrator) missing key: %q", k)
+		}
+	}
+}
+
 func TestExtractNumericVersion(t *testing.T) {
 	tests := []struct {
 		in   string

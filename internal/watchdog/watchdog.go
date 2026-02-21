@@ -37,6 +37,7 @@ var services = []service{
 	{Key: "zid-geolocation", PackageKey: "zid-geolocation", DisplayName: "zid-geolocation"},
 	{Key: "zid-logs", PackageKey: "zid-logs", DisplayName: "zid-logs"},
 	{Key: "zid-access", PackageKey: "zid-access", DisplayName: "zid-access"},
+	{Key: "zid-orchestrator", PackageKey: "zid-orchestrator", DisplayName: "zid-orchestrator"},
 }
 
 func RunOnce(logger *logx.Logger) error {

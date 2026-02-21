@@ -98,7 +98,7 @@ func Sync(logger *logx.Logger) error {
 
 	licensed := map[string]bool{}
 	for _, pkg := range packages.All() {
-		licensed[pkg.Key] = out[pkg.Key]
+		licensed[pkg.Key] = licensedByKey(out, pkg.Key)
 	}
 
 	st.LastSuccess = now
@@ -147,6 +147,18 @@ func parseLicenseMap(raw []byte) (map[string]bool, error) {
 		return nil, fmt.Errorf("licensing unsupported value for %s", key)
 	}
 	return out, nil
+}
+
+func licensedByKey(out map[string]bool, key string) bool {
+	if v, ok := out[key]; ok {
+		return v
+	}
+	// Compatibilidade de nomenclatura: pacote novo usa chave "zid-orchestrator"
+	// no zid-packages, mas alguns clientes/webhook usam "zid-orchestration".
+	if key == "zid-orchestrator" {
+		return out["zid-orchestration"]
+	}
+	return false
 }
 
 func buildRequest() (licenseRequest, error) {

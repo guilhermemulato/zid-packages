@@ -14,6 +14,7 @@ Pacotes controlados:
 - `zid-geolocation`
 - `zid-logs`
 - `zid-access`
+- `zid-orchestrator` (serviço `zid-orchestration`)
 - `zid-packages` (self, com licença N/A)
 
 ---
@@ -142,7 +143,7 @@ shouldRun = enabled && licensed
 ```
 E inicia/para:
 ```
-zid-proxy, zid-appid, zid-threatd, zid-geolocation, zid-logs, zid-access
+zid-proxy, zid-appid, zid-threatd, zid-geolocation, zid-logs, zid-access, zid-orchestrator
 ```
 
 ### Cleanup de regras de firewall no stop
@@ -166,6 +167,7 @@ Para evitar flapping, usa o mesmo método do zid-geolocation:
   - lê `$config['installedpackages'][...]['config'][0]['enable']`
   - para `zid-access`, aceita também seção legada `installedpackages/zid-access` (e `zid_access`) quando existir
   - para `zid-access`, suporta config legada “quebrada” (lista escalar) onde `config[0]` é o enable (gera `<config>on</config>` repetido no XML)
+  - para `zid-orchestrator`, lê `zid_orchestration_enable` de `/etc/rc.conf.local` e `/etc/rc.conf`
 
 #### zid-access: formatos legados de config
 O `zid-access` pode aparecer no `config.xml`/`$config` em formatos diferentes:
@@ -283,6 +285,7 @@ Heurística usada pelo `zid-packages status --json`:
 - `zid-geolocation`: `zid-geolocation -version`.
 - `zid-logs`: prioriza `/usr/local/pkg/zid-logs.xml` e `/usr/local/share/pfSense-pkg-zid-logs/VERSION`; se o `config.xml` tiver versão **não numérica** (ex.: `"zid-logs version dev"`), ela é ignorada para comparação.
 - `zid-access`: tenta `config.xml` (registro do package) e depois `/usr/local/share/pfSense-pkg-zid-access/VERSION`.
+- `zid-orchestrator`: tenta `config.xml` (nome do package `zid-orchestration`), depois `/usr/local/share/pfSense-pkg-zid-orchestration/VERSION` e por fim `zid-orchestration --version`.
 
 ## Arquivos e paths relevantes (pfSense)
 
@@ -294,6 +297,7 @@ Heurística usada pelo `zid-packages status --json`:
 - `/usr/local/sbin/zid-geolocation`
 - `/usr/local/sbin/zid-logs`
 - `/usr/local/sbin/zidaccess`
+- `/usr/local/sbin/zid-orchestration`
 
 **Socket**
 - `/var/run/zid-packages.sock`
@@ -406,10 +410,11 @@ cat /var/db/zid-packages/restart-pending
         zid-proxy     zid-geolocation
         zid-appid     zid-logs
         zid-access
+        zid-orchestrator
 
    IPC (Unix socket /var/run/zid-packages.sock)
    ---------------------------------------------
-   zid-proxy/zid-geolocation/zid-logs/zid-access -> CHECK -> zid-packages
+   zid-proxy/zid-geolocation/zid-logs/zid-access/zid-orchestrator -> CHECK -> zid-packages
    (HMAC/HKDF)                             (valida e responde)
 ```
 

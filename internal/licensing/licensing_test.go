@@ -43,3 +43,39 @@ func TestParseLicenseMap(t *testing.T) {
 		}
 	})
 }
+
+func TestLicensedByKey_OrchestratorAlias(t *testing.T) {
+	cases := []struct {
+		name string
+		out  map[string]bool
+		key  string
+		want bool
+	}{
+		{
+			name: "direct key",
+			out:  map[string]bool{"zid-orchestrator": true},
+			key:  "zid-orchestrator",
+			want: true,
+		},
+		{
+			name: "alias key",
+			out:  map[string]bool{"zid-orchestration": true},
+			key:  "zid-orchestrator",
+			want: true,
+		},
+		{
+			name: "missing key",
+			out:  map[string]bool{},
+			key:  "zid-orchestrator",
+			want: false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := licensedByKey(tc.out, tc.key); got != tc.want {
+				t.Fatalf("licensedByKey(%v, %q)=%v; want %v", tc.out, tc.key, got, tc.want)
+			}
+		})
+	}
+}
