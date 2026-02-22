@@ -125,3 +125,24 @@ func TestExtractNumericVersion(t *testing.T) {
 		}
 	}
 }
+
+func TestSelectOrchestratorLocalVersion_PrioritizesVersionFile(t *testing.T) {
+	got := selectOrchestratorLocalVersion("0.1.5", "0.1.28", "0.1.27")
+	if got != "0.1.28" {
+		t.Fatalf("selectOrchestratorLocalVersion()=%q; want %q", got, "0.1.28")
+	}
+}
+
+func TestSelectOrchestratorLocalVersion_FallsBackToBinary(t *testing.T) {
+	got := selectOrchestratorLocalVersion("0.1.5", "", "0.1.28")
+	if got != "0.1.28" {
+		t.Fatalf("selectOrchestratorLocalVersion()=%q; want %q", got, "0.1.28")
+	}
+}
+
+func TestSelectOrchestratorLocalVersion_ConfigNumericFallback(t *testing.T) {
+	got := selectOrchestratorLocalVersion("zid-orchestration version 0.1.28", "", "")
+	if got != "0.1.28" {
+		t.Fatalf("selectOrchestratorLocalVersion()=%q; want %q", got, "0.1.28")
+	}
+}

@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.72] - 2026-02-22
+- Corrige a versão local exibida de `zid-orchestrator` na aba Packages: agora prioriza `/usr/local/share/pfSense-pkg-zid-orchestration/VERSION` e o binário antes do fallback no `config.xml`.
+- Fallback de `config.xml` para orchestrator aceita ambos nomes de pacote (`zid-orchestrator` e `zid-orchestration`) e extrai versão numérica quando necessário.
+- Adiciona testes unitários para a prioridade de resolução da versão local do orchestrator.
+
 ## [0.4.71] - 2026-02-21
 - Adiciona suporte ao pacote `zid-orchestrator` nas rotinas centrais (`packages`, `services`, watchdog e auto-update).
 - Inclui controle de serviço do orchestrator via rc.d (`zid_orchestration`) e leitura de enable por `zid_orchestration_enable` em `rc.conf`.

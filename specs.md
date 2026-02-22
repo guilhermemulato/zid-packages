@@ -285,7 +285,7 @@ Heurística usada pelo `zid-packages status --json`:
 - `zid-geolocation`: `zid-geolocation -version`.
 - `zid-logs`: prioriza `/usr/local/pkg/zid-logs.xml` e `/usr/local/share/pfSense-pkg-zid-logs/VERSION`; se o `config.xml` tiver versão **não numérica** (ex.: `"zid-logs version dev"`), ela é ignorada para comparação.
 - `zid-access`: tenta `config.xml` (registro do package) e depois `/usr/local/share/pfSense-pkg-zid-access/VERSION`.
-- `zid-orchestrator`: tenta `config.xml` (nome do package `zid-orchestration`), depois `/usr/local/share/pfSense-pkg-zid-orchestration/VERSION` e por fim `zid-orchestration --version`.
+- `zid-orchestrator`: prioriza `/usr/local/share/pfSense-pkg-zid-orchestration/VERSION`, depois `zid-orchestration --version` e usa `config.xml` apenas como fallback (aceitando `zid-orchestrator` e `zid-orchestration`).
 
 ## Arquivos e paths relevantes (pfSense)
 

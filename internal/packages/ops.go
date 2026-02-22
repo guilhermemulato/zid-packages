@@ -473,16 +473,32 @@ func VersionLocal(key string) string {
 		}
 		return ""
 	case "zid-orchestrator":
-		if v := readConfigXMLPackageVersion("zid-orchestration"); v != "" {
-			return v
+		configVersion := ""
+		for _, name := range []string{"zid-orchestrator", "zid-orchestration"} {
+			if v := readConfigXMLPackageVersion(name); v != "" {
+				configVersion = v
+				break
+			}
 		}
-		if v := readVersionFile("/usr/local/share/pfSense-pkg-zid-orchestration/VERSION"); v != "" {
-			return v
-		}
-		return readBinaryVersion(orchestratorBin)
+		versionFile := readVersionFile("/usr/local/share/pfSense-pkg-zid-orchestration/VERSION")
+		binaryVersion := readBinaryVersion(orchestratorBin)
+		return selectOrchestratorLocalVersion(configVersion, versionFile, binaryVersion)
 	default:
 		return ""
 	}
+}
+
+func selectOrchestratorLocalVersion(configVersion, versionFile, binaryVersion string) string {
+	if versionFile != "" {
+		return versionFile
+	}
+	if binaryVersion != "" {
+		return binaryVersion
+	}
+	if nv := extractNumericVersion(configVersion); nv != "" {
+		return nv
+	}
+	return strings.TrimSpace(configVersion)
 }
 
 func VersionRemote(key string) string {
